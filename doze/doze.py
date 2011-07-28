@@ -116,7 +116,7 @@ class TableContext():
         return alias
     
     def setAlias(self, alias):
-        """ Set alias, or raise PySQLError on error """
+        """ Set alias, or raise DozeError on error """
         
         # Automatically append alias (using table name)
         if len(alias) == 1:
