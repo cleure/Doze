@@ -253,3 +253,8 @@ class Where():
         
         return (' '.join(sql), escape)
 
+class Join():
+    """ Not Implemented """
+    def __init__(self):
+        self.where = None
+
