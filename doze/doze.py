@@ -106,9 +106,7 @@ class TableContext():
     
     def normalize(self, alias):
         """ Normalizes user supplied alias. Transforms dictionary to list. """
-        #if type(alias) == dict:
-        #    alias = list(alias.items()[0])
-        
+
         if type(alias[1]) == list:
             tmp = [alias[0]]
             tmp.extend(alias[1])
