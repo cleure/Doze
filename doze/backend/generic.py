@@ -267,6 +267,8 @@ class Join(BaseClause):
                     data.append(self.table + ' '  + table[0])
                 else:
                     data.append(self.table)
+            else:
+                raise ValueError('table must be either a list with the length of 2, or a string')
         
         data.append('ON')
         
