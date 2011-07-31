@@ -4,13 +4,17 @@
 TYPE_VALUE = 1
 TYPE_FIELD = 2
 
+JOIN_INNER = 1
+JOIN_LEFT = 2
+JOIN_RIGHT = 3
+
 class DozeError(Exception):
     def __init__(self, msg):
         self.value = msg
     def __str__(self):
         return repr(self.value)
 
-class TableContext():
+class TableContext(object):
     """
     **
     * This class is a helper for dealing with table contexts. It stores
@@ -180,4 +184,59 @@ class TableContext():
         for k, v in self.aliases.items():
             if v[1] == 'join':
                 yield [k, v[0]]
+
+class BaseClause(object):
+    def __init__(self):
+        self.caller = None
+
+    def setTableContext(self, ctx):
+        """ Set the TableContext, for table aliases, etc """
+        self.tableContext = ctx
+    
+    def setCaller(self, caller):
+        """ Sets a reference the previous caller """
+        self.caller = caller
+    
+    def getAliasedField(self, field, alias, kind = 'origin'):
+        """ Get aliased field """
+        ctx = self.tableContext
+        aliased = field
+        
+        # Get alias context
+        if alias == None or (type(alias) == list and len(alias) < 1):
+            if not ctx == None:
+                if kind == 'origin':
+                    alias = ctx.origin()
+                else:
+                    # Get first join
+                    # FIXME: TableContext isn't ordered
+                    for i in ctx:
+                        if i[1][1] == 'join':
+                            alias = [i[0], i[1]]
+                            break
+        
+        # Get alias from list
+        if type(alias) == list and len(alias) > 0:
+            # Get from alias (list)
+            if len(alias) > 1:
+                alias = alias[1]
+            else:
+                alias = alias[0]
+            
+            aliased = alias + '.' + field
+        elif type(alias) == str:
+            # Get from alias (string)
+            if not ctx == None:
+                # If table name, get alias for table
+                if alias in ctx:
+                    alias = ctx[alias]
+                    alias = alias[0]
+            aliased = alias + '.' + field
+        
+        return aliased
+    
+    def sql(self):
+        """ Not Implemented """
+        raise DozeError('sql method not implemented')
+        
 

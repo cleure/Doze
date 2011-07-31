@@ -3,7 +3,7 @@
 
 from doze import *
 
-class Where():
+class Where(BaseClause):
     """
     **
     * WHERE clause class.
@@ -93,23 +93,20 @@ class Where():
         'destType',
         'destAlias']
 
-    def __init__(self, field, type = TYPE_FIELD, alias = None):
-        self.current = [None, field, type, alias]
+    def __init__(self, field, kind = TYPE_FIELD, alias = None):
+        super(Where, self).__init__()
+        self.current = [None, field, kind, alias]
         self.where = []
         self.tableContext = None
     
-    def setTableContext(self, ctx):
-        """ Set the TableContext, for table aliases, etc """
-        self.tableContext = ctx
-    
     def __getattr__(self, key):
-        def setCurrent(field, type = TYPE_FIELD, alias = None):
-            self.current = [key, field, type, alias]
+        def setCurrent(field, kind = TYPE_FIELD, alias = None):
+            self.current = [key, field, kind, alias]
             return self
     
-        def setWhere(value = None, type = TYPE_VALUE, alias = None):
+        def setWhere(value = None, kind = TYPE_VALUE, alias = None):
             temp = self.current
-            temp.extend([key, value, type, alias])
+            temp.extend([key, value, kind, alias])
             self.where.append(temp)
             self.current = None
             return self
@@ -120,10 +117,9 @@ class Where():
             return setWhere
         
         raise AttributeError(str(self.__class__) + " instance has no attribute '" + key + "'")
-
+    
     def parseExpression(self, each):
         """ Parse supplied expression """
-        ctx = self.tableContext
         data = []
         source = each['sourceName']
         dest = each['destName']
@@ -134,26 +130,9 @@ class Where():
             source = '%s'
             escape.append(each['sourceName'])
         else:
-            # Source is a field
-            alias = None
-            if not each['sourceAlias'] == None:
-                # Extract alias from each
-                alias = each['sourceAlias']
-            elif not ctx == None:
-                # Extract alias from tableContext
-                alias = ctx.origin()
+            source = self.getAliasedField(each['sourceName'],\
+                each['sourceAlias'], 'origin')
                 
-                if not alias == None and len(alias) > 0:
-                    if len(alias) > 1:
-                        # Table alias
-                        alias = alias[1]
-                    else:
-                        # Table name
-                        alias = alias[0]
-                
-                if not alias == None:
-                    source = alias + '.' + source
-        
         if each['destType'] == TYPE_VALUE:
             # Dest is value
             dest = '%s'
@@ -167,26 +146,8 @@ class Where():
                 escape.append(each['destName'])
         else:
             # Dest is field
-            alias = None
-            if not each['destAlias'] == None:
-                # Extract alias from each
-                alias = each['destAlias']
-            elif not ctx == None:
-                # Extract alias from tableContext
-                for alias in ctx.joins():
-                    break
-                
-                if not alias == None and len(alias) > 0:
-                    alias = alias[0]
-                    if len(alias) > 1:
-                        # Table alias
-                        alias = alias[1]
-                    else:
-                        # Table name
-                        alias = alias[0]
-                
-                if not alias == None:
-                    dest = alias + '.' + dest
+            dest = self.getAliasedField(each['destName'],\
+                each['destAlias'], 'join')
         
         return (source, dest, escape)
 
@@ -227,6 +188,11 @@ class Where():
 
     def sql(self):
         """ Build SQL and return string """
+        
+        # Return callers sql() method
+        if not self.caller == None:
+            return self.caller.sql()
+        
         sql = []
         escape = []
         
@@ -253,8 +219,59 @@ class Where():
         
         return (' '.join(sql), escape)
 
-class Join():
-    """ Not Implemented """
-    def __init__(self):
+class Join(BaseClause):
+    """ Join Class. API Draft Stage """
+    def __init__(self, table, kind = JOIN_INNER, filter = None, context = None):
+        super(Join, self).__init__()
+    
         self.where = None
+        self.tableContext = None
+        self.table = table
+        self.kind = kind
+        
+        if isinstance(filter, Where):
+            self.where = filter
+        
+        if isinstance(context, TableContext):
+            self.setTableContext(context)
+    
+    def filter(self, where):
+        self.where = where
+        return self
+    
+    def sql(self):
+        """ Build SQL and return string """
+        ctx = self.tableContext
+        
+        if self.kind == JOIN_INNER:
+            data = ['INNER JOIN']
+        elif self.kind == JOIN_LEFT:
+            data = ['LEFT JOIN']
+        elif self.kind == JOIN_RIGHT:
+            data = ['RIGHT JOIN']
+        else:
+            raise ValueError('Invalid value for kind')
 
+        if not isinstance(self.where, Where):
+            raise TypeError('Where must be a valid Where class object')
+
+        # Auto add alias to table context
+        if type(self.table) == list and len(self.table) > 1\
+        and not ctx == None and not self.table[0] in ctx:
+            ctx[self.table[0]] = self.table[1]
+            data.append(' '.join(self.table))
+        else:
+            if type(self.table) == str:
+                if not ctx == None and self.table in ctx:
+                    table = ctx[self.table]
+                    data.append(self.table + ' '  + table[0])
+                else:
+                    data.append(self.table)
+        
+        data.append('ON')
+        
+        where, escape = self.where.sql()
+        data.append('(' + where + ')')
+        
+        return (' '.join(data), escape)
+        
