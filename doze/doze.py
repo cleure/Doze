@@ -238,5 +238,3 @@ class BaseClause(object):
     def sql(self):
         """ Not Implemented """
         raise DozeError('sql method not implemented')
-        
-

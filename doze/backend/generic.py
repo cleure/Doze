@@ -271,9 +271,12 @@ class Join(BaseClause):
                 raise ValueError('table must be either a list with the length of 2, or a string')
         
         data.append('ON')
-        
         where, escape = self.where.sql()
         data.append('(' + where + ')')
         
         return (' '.join(data), escape)
-        
+
+class Builder():
+    """ Not Implemented. API Draft """
+    def __init__(self):
+        pass
