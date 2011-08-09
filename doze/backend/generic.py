@@ -222,7 +222,7 @@ class Where(BaseClause):
 
 class Join(BaseClause):
     """ Join Class. API Draft Stage """
-    def __init__(self, table, kind = JOIN_INNER, filter = None, context = None):
+    def __init__(self, table, kind = JOIN_INNER, where = None, context = None):
         super(Join, self).__init__()
     
         self.where_ = None
@@ -230,8 +230,8 @@ class Join(BaseClause):
         self.table = table
         self.kind = kind
         
-        if isinstance(filter, Where):
-            self.where = filter
+        if isinstance(where, Where):
+            self.where_ = where
         
         if isinstance(context, TableContext):
             self.setTableContext(context)
