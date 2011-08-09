@@ -219,7 +219,10 @@ class BaseClause(object):
         if type(alias) == list and len(alias) > 0:
             # Get from alias (list)
             if len(alias) > 1:
-                alias = alias[1]
+                if type(alias[1]) == list:
+                    alias = alias[1][0]
+                else:
+                    alias = alias[1]
             else:
                 alias = alias[0]
             
@@ -234,6 +237,16 @@ class BaseClause(object):
             aliased = alias + '.' + field
         
         return aliased
+    
+    def fieldIsAliased(self, field):
+        """ Check if field is aliased """
+        
+        for i in range(0, len(field)):
+            if field[i] == '.':
+                return True
+        
+        return False
+        
     
     def sql(self):
         """ Not Implemented """

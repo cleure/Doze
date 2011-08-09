@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from doze import *
+import copy
 
 class Where(BaseClause):
     """
@@ -156,11 +157,11 @@ class Where(BaseClause):
         
         comparison = None
         simple = self.simpleCompOperators
-        complex = self.complexCompOperators
+        complex_ = self.complexCompOperators
         
         if each['comp'] in simple:
             comparison = ' '.join([expression[0], simple[each['comp']], expression[1]])
-        elif each['comp'] in complex:
+        elif each['comp'] in complex_:
             func = getattr(self, 'build_' + each['comp'])
             comparison = func(expression, each)
         else:
@@ -224,7 +225,7 @@ class Join(BaseClause):
     def __init__(self, table, kind = JOIN_INNER, filter = None, context = None):
         super(Join, self).__init__()
     
-        self.where = None
+        self.where_ = None
         self.tableContext = None
         self.table = table
         self.kind = kind
@@ -235,13 +236,14 @@ class Join(BaseClause):
         if isinstance(context, TableContext):
             self.setTableContext(context)
     
-    def filter(self, where):
-        self.where = where
+    def where(self, where):
+        self.where_ = where
         return self
     
     def sql(self):
         """ Build SQL and return string """
         ctx = self.tableContext
+        self.where_.setTableContext(ctx)
         
         if self.kind == JOIN_INNER:
             data = ['INNER JOIN']
@@ -252,7 +254,7 @@ class Join(BaseClause):
         else:
             raise ValueError('Invalid value for kind')
 
-        if not isinstance(self.where, Where):
+        if not isinstance(self.where_, Where):
             raise TypeError('Where must be a valid Where class object')
 
         # Auto add alias to table context
@@ -271,12 +273,140 @@ class Join(BaseClause):
                 raise ValueError('table must be either a list with the length of 2, or a string')
         
         data.append('ON')
-        where, escape = self.where.sql()
+        where, escape = self.where_.sql()
         data.append('(' + where + ')')
         
         return (' '.join(data), escape)
 
-class Builder():
+class Builder(BaseClause):
     """ Not Implemented. API Draft """
     def __init__(self):
-        pass
+        self.tableContext = TableContext()
+    
+    def select(self, columns):
+        self.tableContext = TableContext()
+        self.kind = 'select'
+        self.joins = []
+        self.where_ = []
+        self.having_ = None
+        self.group_ = None
+        self.order_ = None
+        self.limit_ = None
+        self.columns = columns
+        
+        return self
+    
+    def from_(self, source):
+        self.source = source
+        if self.kind == 'select' and type(source) == list:
+            self.tableContext[source[0]] = source[1]
+        
+        return self
+    
+    def where(self, where):
+        self.where_.append(where)
+        return self
+    
+    def join(self, join):
+        self.joins.append(join)
+        return self
+    
+    def having(self, having):
+        self.having_ = having
+        return self
+    
+    def group(self, group):
+        self.group_ = group
+        return self
+    
+    def order(self, order):
+        self.order_ = order
+        return self
+    
+    def limit(self, limit):
+        self.limit_ = limit
+        return self
+    
+    def normalizeColumns(self, columns):
+        if type(columns) == str:
+            cols = [i.strip() for i in columns.split(',')]
+            columns = cols
+        
+        if len(self.tableContext) > 0:
+            origin = self.tableContext.origin()
+            if len(origin) > 1:
+                origin = origin[1]
+            else:
+                origin = origin[0]
+            
+            cols = []
+            for i in columns:
+                if self.fieldIsAliased(i):
+                    cols.append(i)
+                else:
+                    cols.append('.'.join([origin, i]))
+            
+            columns = cols
+        return columns
+    
+    def fromSelect(self):
+        query = ['SELECT']
+        escape = []
+        
+        columns = self.normalizeColumns(self.columns)
+        query.extend([', '.join(columns), 'FROM'])
+        
+        if type(self.source) == list:
+            query.append(' '.join(self.source))
+        else:
+            query.append(self.source)
+        
+        # JOIN
+        if len(self.joins) > 0:
+            for i in self.joins:
+                i.setTableContext(self.tableContext)
+                tmpquery, tmpescape = i.sql()
+                query.append(tmpquery)
+                escape.extend(tmpescape)
+        
+        # WHERE
+        if len(self.where_) > 0:
+            query.append('WHERE')
+            tmplist = []
+            
+            for i in self.where_:
+                i.setTableContext(self.tableContext)
+                tmpquery, tmpescape = i.sql()
+                tmplist.append(tmpquery)
+                escape.extend(tmpescape)
+            
+            query.append(' AND '.join(tmplist))
+        
+        # GROUP BY
+        if not self.group_ == None:
+            query.append('GROUP BY')
+            query.append(', '.join(self.normalizeColumns(self.group_)))
+        
+        # HAVING
+        if not self.having_ == None:
+            query.append('HAVING')
+            tmpquery, tmpescape = self.having_.sql()
+            query.append(tmpquery)
+            escape.extend(tmpescape)
+        
+        # ORDER
+        if not self.order_ == None:
+            query.append('ORDER BY')
+            query.append(', '.join(self.normalizeColumns(self.order_)))
+        
+        # LIMIT
+        # FIXME: Escape LIMIT???
+        if not self.limit_ == None:
+            query.append('LIMIT')
+            query.append(str(self.limit_))
+        
+        return (' '.join(query), escape)
+    
+    def sql(self):
+        if self.kind == 'select':
+            return self.fromSelect()

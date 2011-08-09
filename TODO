@@ -1,4 +1,4 @@
 
 * Properly implement backends. Currently, "generic" is the only one usable, while the API id being drafted.
-
+* Properly handle fields when they're quoted
 * Function the implements "encapsulate", which would be suitable to be used as a method decorator. Needs to be used to properly build sub-queries, or queries like: WHERE id = 5 OR (parent = 5 AND visible = 1)
