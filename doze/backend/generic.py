@@ -221,7 +221,32 @@ class Where(BaseClause):
         return (' '.join(sql), escape)
 
 class Join(BaseClause):
-    """ Join Class. API Draft Stage """
+    """
+    **
+    * Join clause class. You'll likely want to use this through the Builder class,
+    * otherwise you'll have to maintain your own TableContext object.
+    *
+    * Usage:
+    *
+    * join = Join(<table>, [kind], [where], [context])
+    *   <table> can be a list of [table, alias] or string.
+    *   [kind] is the kind of join (JOIN_INNER, JOIN_LEFT, JOIN_RIGHT)
+    *   [where] is an optional Where object to use as a qualifier
+    *   [context] is an optional reference to a TableContext object
+    *
+    * Examples:
+    *
+    * # Using Join directly
+    * context = TableContext(['maintable', 'a'])
+    * join = Join(['table2', 'b']).where(Where('refid').equals('id', kind=TYPE_FIELD))
+    * join.setTableContext(context)
+    * sql, escape = join.sql()
+    *
+    * # Using Join through Builder
+    * builder.select('*').from_(['table1', 'a'])\
+    *   join(Join(['table2', 'b']).where(Where('refid').equals('id', kind=TYPE_FIELD)))
+    **
+    """
     def __init__(self, table, kind = JOIN_INNER, where = None, context = None):
         super(Join, self).__init__()
     
