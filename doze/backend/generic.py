@@ -244,7 +244,13 @@ class Join(BaseClause):
     *
     * # Using Join through Builder
     * builder.select('*').from_(['table1', 'a'])\
-    *   join(Join(['table2', 'b']).where(Where('refid').equals('id', kind=TYPE_FIELD)))
+    *   .join(Join(['table2', 'b']).where(Where('refid').equals('id', kind=TYPE_FIELD)))
+    *
+    * # Specifying a more specific alias context
+    * builder.select('*').from(['table1', 'a'])\
+    *   .join(Join(['table2', 'b']).where(...))\
+    *   .join(Join(['table3', 'c']).where(
+    *       Where('refid', alias='b').equals('id', kind=TYPE_FIELD)))
     **
     """
     def __init__(self, table, kind = JOIN_INNER, where = None, context = None):
