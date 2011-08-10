@@ -303,10 +303,39 @@ class Join(BaseClause):
         
         return (' '.join(data), escape)
 
+class QueryResult(object):
+    """ API Draft """
+    def __init__(self, cursor = None, destroy = True):
+        self.setCursor(cursor, destroy)
+    
+    def __len__(self):
+        if self.cursor == None:
+            return 0
+        return self.cursor.rowcount
+    
+    def __iter__(self):
+        res = self.cursor.fetchone()
+        while not res == None:
+            yield dict(zip(self.labels, res))
+            res = self.cursor.fetchone()
+        
+        if self.destroy == True:
+            self.cursor.close()
+    
+    def setCursor(self, cursor = None, destroy = True):
+        self.cursor = cursor
+        self.destroy = destroy
+        self.labels = []
+        
+        if not self.cursor == None:
+            for i in self.cursor.description:
+                self.labels.append(i.name)
+
 class Builder(BaseClause):
-    """ Not Implemented. API Draft """
-    def __init__(self):
+    """ API Draft """
+    def __init__(self, db = None):
         self.tableContext = TableContext()
+        self.db = db
     
     def select(self, columns):
         self.tableContext = TableContext()
@@ -431,6 +460,42 @@ class Builder(BaseClause):
             query.append(str(self.limit_))
         
         return (' '.join(query), escape)
+    
+    def cursor(self, server = False):
+        """
+        **
+        * Execute query and return cursor. FIXME: If server == True, return a
+        * server-side cursor.
+        *
+        * @param    server  bool
+        * @return   object
+        **
+        """
+        if self.db == None:
+            return None
+        
+        query, escape = self.sql()
+        
+        cursor = self.db.cursor()
+        cursor.execute(query, escape)
+        return cursor
+    
+    def results(self, fetchall = False, server = False):
+        """
+        **
+        * Execute query and return result object. If fetchall == True,
+        * cursor.fetchall() will be used instead of wrapping the cursor
+        * into an iterable object, and fetching as needed. If server == True,
+        * use a server-side cursor and wrap it in an object, so data can be
+        * downloaded as needed, instead of all at once.
+        *
+        * FIXME: Controllable fetch mode (tuple or dictionary)
+        *
+        * @param    fetchall    bool
+        * @param    server      bool
+        **
+        """
+        cursor = self.cursor(server)
     
     def sql(self):
         if self.kind == 'select':

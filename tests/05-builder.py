@@ -1,5 +1,5 @@
 
-import sys
+import os, sys
 sys.path.append('../doze')
 
 import doze
