@@ -40,12 +40,15 @@ class Builder(generic.Builder):
         
         if server == True:
             rand = random.randint(10000, 100000)
-            max = 0
+            max = 30
+            tries = 1
+            
             while rand in self.ssCursors:
-                if max >= 30:
-                    raise DozeError('Unable to generate unique cursor name. Max tries exhausted')
+                if tries >= max:
+                    raise DozeError('Unable to generate unique cursor name.'\
+                        + ' Max tries exhausted (' + str(tries) + ')')
                 rand = random.randint(10000, 100000)
-                max += 1
+                tries += 1
             
             self.ssCursors.append(rand)
             cursor = self.db.cursor('doze_cursor_' + str(rand))
