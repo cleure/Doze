@@ -470,7 +470,7 @@ class Builder(BaseClause):
     def cursor(self, server = False):
         """
         **
-        * Execute query and return cursor. FIXME: If server == True, return a
+        * Execute query and return cursor. If server == True, return a
         * server-side cursor.
         *
         * @param    server  bool
