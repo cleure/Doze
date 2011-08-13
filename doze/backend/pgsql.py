@@ -46,7 +46,7 @@ class Builder(generic.Builder):
             while rand in self.ssCursors:
                 if tries >= max:
                     raise DozeError('Unable to generate unique cursor name.'\
-                        + ' Max tries exhausted (' + str(tries) + ')')
+                        + ' Max tries exhausted (' + str(max) + ')')
                 rand = random.randint(10000, 100000)
                 tries += 1
             
