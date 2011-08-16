@@ -311,8 +311,9 @@ class Join(BaseClause):
 
 class QueryResult(object):
     """ API Draft """
-    def __init__(self, cursor = None, destroy = True):
+    def __init__(self, cursor = None, destroy = True, fetch = dict):
         self.setCursor(cursor, destroy)
+        self.fetch = fetch
     
     def __len__(self):
         if self.cursor == None:
@@ -325,7 +326,10 @@ class QueryResult(object):
             self.initCursorDescr()
     
         while not res == None:
-            yield dict(zip(self.labels, res))
+            if self.fetch.__name__ == 'dict':
+                yield dict(zip(self.labels, res))
+            else:
+                yield res
             res = self.cursor.fetchone()
         
         if self.destroy == True:
@@ -336,7 +340,9 @@ class QueryResult(object):
         if self.cursorDescrInit == False:
             self.initCursorDescr()
 
-        return dict(zip(self.labels, res))
+        if self.fetch.__name__ == 'dict':
+            return dict(zip(self.labels, res))
+        return res
     
     def initCursorDescr(self):
         for i in self.cursor.description:
@@ -502,7 +508,7 @@ class Builder(BaseClause):
         cursor.execute(query, escape)
         return cursor
     
-    def asObject(self, fetchall = False, server = False, destroy = True):
+    def asObject(self, fetchall = False, server = False, destroy = True, fetch = dict):
         """
         **
         * Execute query and return result object. If fetchall == True,
@@ -511,14 +517,15 @@ class Builder(BaseClause):
         * use a server-side cursor and wrap it in an object, so data can be
         * downloaded as needed, instead of all at once.
         *
-        * FIXME: Controllable fetch mode (tuple or dictionary)
-        *
         * @param    fetchall    bool
         * @param    server      bool
+        * @param    fetch       type, dict returns dictionaries, anything else
+        *                       returns tuples
+        * @return   QueryResult
         **
         """
         cursor = self.cursor(server)
-        return QueryResult(cursor, destroy)
+        return QueryResult(cursor, destroy, fetch)
     
     def insertInto(self, table):
         pass

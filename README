@@ -18,6 +18,9 @@ It's where you should look if you want to learn how to use it.
 
 Doze has built in support for Server Side Cursors, and asynchronous connections
 (although, you can't use them at the same time, due to driver limitations).
+Asynchronous support is currently limited to PostgreSQL, due to issues with the
+MySQLdb driver (there are a couple pure python implementations of the MySQL
+driver which solve this, however, I haven't had the time to look into them).
 
 =================================
 Examples of Expressive Queries

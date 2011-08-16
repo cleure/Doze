@@ -5,12 +5,49 @@ import random
 from doze import DozeError, TableContext
 import generic as generic
 
+def connection_is_open(conn):
+    """
+    Test if connection is open, and return True if it is.
+    
+    Sometimes, a server process will silently fail, such as when kill -KILL
+    is used, or when it's restarted. The problem is, psycopg2 doesn't detect
+    that the backend has died, and will happily try to execute a query on
+    the connection, raising an exception. This function is meant to eliminate
+    that risk.
+    
+    It works by running 'SELECT 1' on the connection, and checking for an
+    exception. If an exception is thrown, it returns False.
+    """
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT 1')
+    except:
+        return False
+    
+    cursor.close()
+    return True
+
 def connection_is_ready(conn):
-    """ Returns True when connection is ready """
+    """
+    Returns True when connection is ready for commands.
+    
+    This also calls connection_is_ready(), even if an async connection
+    tells us that it's open and ready for commands, since it still may have
+    been closed.
+    """
     if conn.async == True:
         if conn.poll() == psycopg2.extensions.POLL_OK:
+        
+            # Test if connection open on async connection
+            if connection_is_open(conn) == False:
+                return False
             return True
         return False
+    
+    # Test if connection is open on sync connection
+    if connection_is_open(conn) == False:
+        return False
+    
     return True
 
 class Where(generic.Where):
@@ -85,7 +122,7 @@ class Builder(generic.Builder):
         cursor.execute(query, escape)
         return cursor
     
-    def asObject(self, fetchall = False, server = False, destroy = True):
+    def asObject(self, fetchall = False, server = False, destroy = True, fetch = dict):
         """
         **
         * Execute query and return result object. If fetchall == True,
@@ -94,14 +131,15 @@ class Builder(generic.Builder):
         * use a server-side cursor and wrap it in an object, so data can be
         * downloaded as needed, instead of all at once.
         *
-        * FIXME: Controllable fetch mode (tuple or dictionary)
-        *
         * @param    fetchall    bool
         * @param    server      bool
+        * @param    fetch       type, dict returns dictionaries, anything else
+        *                       returns tuples
+        * @return   QueryResult
         **
         """
         cursor = self.cursor(server)
-        return QueryResult(cursor, destroy)
+        return QueryResult(cursor, destroy, fetch)
     
     def isReady(self):
         if self.db is None:
