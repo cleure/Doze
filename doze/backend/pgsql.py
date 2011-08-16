@@ -5,6 +5,14 @@ import random
 from doze import DozeError, TableContext
 import generic as generic
 
+def connection_is_ready(conn):
+    """ Returns True when connection is ready """
+    if conn.async == True:
+        if conn.poll() == psycopg2.extensions.POLL_OK:
+            return True
+        return False
+    return True
+
 class Where(generic.Where):
     pass
 
@@ -12,7 +20,10 @@ class Join(generic.Join):
     pass
 
 class QueryResult(generic.QueryResult):
-    pass
+    def isReady(self):
+        if self.cursor is None:
+            return False
+        return connection_is_ready(self.cursor.connection)
 
 class Builder(generic.Builder):
     def __init__(self, db = None):
@@ -73,3 +84,26 @@ class Builder(generic.Builder):
         
         cursor.execute(query, escape)
         return cursor
+    
+    def asObject(self, fetchall = False, server = False, destroy = True):
+        """
+        **
+        * Execute query and return result object. If fetchall == True,
+        * cursor.fetchall() will be used instead of wrapping the cursor
+        * into an iterable object, and fetching as needed. If server == True,
+        * use a server-side cursor and wrap it in an object, so data can be
+        * downloaded as needed, instead of all at once.
+        *
+        * FIXME: Controllable fetch mode (tuple or dictionary)
+        *
+        * @param    fetchall    bool
+        * @param    server      bool
+        **
+        """
+        cursor = self.cursor(server)
+        return QueryResult(cursor, destroy)
+    
+    def isReady(self):
+        if self.db is None:
+            return False
+        return connection_is_ready(self.db)

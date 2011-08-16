@@ -320,6 +320,10 @@ class QueryResult(object):
         return self.cursor.rowcount
     
     def __iter__(self):
+        if self.cursorInit == False:
+            for i in self.cursor.description:
+                self.labels.append(i.name)
+    
         res = self.cursor.fetchone()
         while not res == None:
             yield dict(zip(self.labels, res))
@@ -332,10 +336,10 @@ class QueryResult(object):
         self.cursor = cursor
         self.destroy = destroy
         self.labels = []
-        
-        if not self.cursor == None:
-            for i in self.cursor.description:
-                self.labels.append(i.name)
+        self.cursorInit = False
+    
+    def isReady(self):
+        return True
 
 class Builder(BaseClause):
     """ API Draft """
@@ -486,7 +490,7 @@ class Builder(BaseClause):
         cursor.execute(query, escape)
         return cursor
     
-    def results(self, fetchall = False, server = False):
+    def asObject(self, fetchall = False, server = False, destroy = True):
         """
         **
         * Execute query and return result object. If fetchall == True,
@@ -502,7 +506,7 @@ class Builder(BaseClause):
         **
         """
         cursor = self.cursor(server)
-    
+        return QueryResult(cursor, destroy)
     
     def insertInto(self, table):
         pass
@@ -534,3 +538,6 @@ class Builder(BaseClause):
         """ Convenience wrapper for db.rollback() """
         if self.db is not None:
             self.db.rollback()
+    
+    def isReady(self):
+        return True
