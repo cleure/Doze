@@ -16,6 +16,9 @@ Currently, Doze is still in the API drafting stage, which means the API is likel
 to change in the future. The tests/ contains many tests for current working API.
 It's where you should look if you want to learn how to use it.
 
+Doze has built in support for Server Side Cursors, and asynchronous connections
+(although, you can't use them at the same time, due to driver limitations).
+
 =================================
 Examples of Expressive Queries
 =================================

@@ -320,11 +320,10 @@ class QueryResult(object):
         return self.cursor.rowcount
     
     def __iter__(self):
-        if self.cursorInit == False:
-            for i in self.cursor.description:
-                self.labels.append(i.name)
-    
         res = self.cursor.fetchone()
+        if self.cursorDescrInit == False:
+            self.initCursorDescr()
+    
         while not res == None:
             yield dict(zip(self.labels, res))
             res = self.cursor.fetchone()
@@ -332,11 +331,24 @@ class QueryResult(object):
         if self.destroy == True:
             self.cursor.close()
     
+    def next(self):
+        res = self.cursor.fetchone()
+        if self.cursorDescrInit == False:
+            self.initCursorDescr()
+
+        return dict(zip(self.labels, res))
+    
+    def initCursorDescr(self):
+        for i in self.cursor.description:
+            self.labels.append(i.name)
+        
+        self.cursorDescrInit = True
+    
     def setCursor(self, cursor = None, destroy = True):
         self.cursor = cursor
         self.destroy = destroy
         self.labels = []
-        self.cursorInit = False
+        self.cursorDescrInit = False
     
     def isReady(self):
         return True
