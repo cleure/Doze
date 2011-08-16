@@ -1,3 +1,34 @@
 
-Doze is a very small, but expressive, SQL wrapper, ideal for lightweight tasks, such as import scripts. It's currently in the API drafting stage.
+=================================
+About Doze
+=================================
 
+Doze is a very small, but expressive, SQL wrapper, ideal for lightweight tasks,
+such as import scripts. It's meant to be fully expressive, and not assume it knows
+better than the person programming with it. It's connection agnostic, and doesn't
+necessarily require a database connection to build queries. It doesn't assume you
+only have one database connection, in contrast, one of it's primary purposes is for
+having multiple database connections open at the same time, to a variety of backend
+servers (MySQL, PostgreSQL, and SQLite), and performing a variety of tasks to them
+simultaneously.
+
+Currently, Doze is still in the API drafting stage, which means the API is likely
+to change in the future. The tests/ contains many tests for current working API.
+It's where you should look if you want to learn how to use it.
+
+=================================
+Examples of Expressive Queries
+=================================
+
+You may be wondering what I'm talking about by being expressive. This may help to
+clear that up. This is an example of Doze in action, using the current API draft:
+
+    import doze
+    import doze.backends.pgsql as pgsql
+
+    builder = pgsql.Builder()
+    builder.select('a.*, b.somefield').from_(['maintable', 'a'])\
+        .join(pgsql.Join(['secondtable', 'b']).where(
+            pgsql.Where('refid').equals('id', kind=doze.TYPE_FIELD)))
+
+Thats it!

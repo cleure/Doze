@@ -1,7 +1,7 @@
 
 """
 * 
-* Test showing basic usage of Doze on PostgreSQL.
+* Test showing usage of server side cursors on PostgreSQL.
 * 
 """
 
@@ -25,13 +25,15 @@ def main():
     builder = pgsql.Builder(db = db)
     builder.select('*').from_('languages')
     
-    cursor = builder.cursor()
-    row = cursor.fetchone()
-    while row is not None:
-        print row
-        row = cursor.fetchone()
+    cursor1 = builder.cursor(server=True)
+    cursor2 = db.cursor()
     
-    cursor.close()
+    cursor2.execute('SELECT * FROM pg_catalog.pg_cursors')
+    print cursor2.fetchall()
+    
+    cursor1.close()
+    cursor2.close()
+    
     db.close()
     sys.exit(0)
 

@@ -17,11 +17,6 @@ class QueryResult(generic.QueryResult):
 class Builder(generic.Builder):
     def __init__(self, db = None):
         super(Builder, self).__init__(db)
-        
-        # Server side cursors require a unique name
-        # Hack to workaround the inability to create such cursors
-        # without a randomly generated name.
-        self.ssCursors = []
 
     def cursor(self, server = False):
         """
@@ -29,7 +24,9 @@ class Builder(generic.Builder):
         * Execute query and return cursor. If server == True, return a
         * server-side cursor.
         *
-        * @param    server  bool
+        * @param    server  bool or str. If server is true, a random cursor
+        *                   name is generated. If its a string, the string
+        *                   is used as the cursor name.
         * @return   object
         **
         """
@@ -38,20 +35,39 @@ class Builder(generic.Builder):
         
         query, escape = self.sql()
         
-        if server == True:
-            rand = random.randint(10000, 100000)
-            max = 30
+        if type(server) == str and len(server) > 0:
+            # Create a cursor with "server" as name
+            cursor = self.db.cursor(server)
+        elif server == True:
+            # For PostgreSQL, you have to create a named cursor in order for it
+            # to be server-side. So this next block attempts to generate a random
+            # number between 100 and 1,000,000, to use as a cursor name. It will
+            # attempt 20 tries before raising an error.
+        
+            def getRandNum():
+                return random.randint(100, 1000000)
+        
+            tmpcursor = self.db.cursor()
+            rand = getRandNum()
+            max = 20
             tries = 1
             
-            while rand in self.ssCursors:
-                if tries >= max:
+            while True:
+                cursorName = 'doze_cursor_' + str(rand)
+                tmpcursor.execute('SELECT name FROM pg_catalog.pg_cursors WHERE name = %s',
+                    [cursorName])
+                
+                if tmpcursor.fetchone() == None:
+                    break
+                elif tries >= max:
                     raise DozeError('Unable to generate unique cursor name.'\
                         + ' Max tries exhausted (' + str(max) + ')')
-                rand = random.randint(10000, 100000)
+                
+                rand = getRandNum()
                 tries += 1
             
-            self.ssCursors.append(rand)
-            cursor = self.db.cursor('doze_cursor_' + str(rand))
+            tmpcursor.close()
+            cursor = self.db.cursor(cursorName)
         else:
             cursor = self.db.cursor()
         

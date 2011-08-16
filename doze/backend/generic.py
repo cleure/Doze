@@ -503,6 +503,34 @@ class Builder(BaseClause):
         """
         cursor = self.cursor(server)
     
+    
+    def insertInto(self, table):
+        pass
+    
+    def update(self, table):
+        pass
+    
+    def deleteFrom(self, table):
+        pass
+    
     def sql(self):
         if self.kind == 'select':
             return self.fromSelect()
+    
+    def getConnection(self):
+        """ Get database connection, if any """
+        return self.db
+    
+    def setConnection(self, db):
+        """ Set database connection """
+        self.db = db
+    
+    def commit(self):
+        """ Convenience wrapper for db.commit() """
+        if self.db is not None:
+            self.db.commit()
+    
+    def rollback(self):
+        """ Convenience wrapper for db.rollback() """
+        if self.db is not None:
+            self.db.rollback()
