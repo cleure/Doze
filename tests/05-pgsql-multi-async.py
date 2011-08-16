@@ -36,8 +36,6 @@ def main():
         builder = pgsql.Builder(db).select('*').from_('metatags')
         builders.append(builder)
     
-    connections[3].close()
-    
     # Wait for connections and results to become available
     done = False
     while not done:
@@ -50,6 +48,8 @@ def main():
             if builder.isReady():
                 results.append(builder.asObject())
                 builders.remove(builder)
+            elif not pgsql.connection_is_open(builder.db):
+                builders.remove(builder)
         
         for result in results:
             if result.isReady():
@@ -57,10 +57,10 @@ def main():
                 results.remove(result)
         
         time.sleep(0.01)
-        
     
     for i in connections:
-        i.close()
+        if pgsql.connection_is_open(i):
+            i.close()
     
     sys.exit(0)
 
