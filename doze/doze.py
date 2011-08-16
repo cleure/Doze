@@ -1,8 +1,8 @@
 
 # -*- coding: utf-8 -*-
 
-TYPE_VALUE = 1
-TYPE_FIELD = 2
+VALUE = 1
+FIELD = 2
 
 JOIN_INNER = 1
 JOIN_LEFT = 2

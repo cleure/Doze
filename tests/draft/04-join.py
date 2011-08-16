@@ -8,7 +8,7 @@ def main():
     ctx = doze.TableContext(['table1', 'a'], ['table2', 'b'])
 
     join = doze.Join(table='table2', context=ctx)\
-        .where(doze.Where('refid').equals('id', kind=doze.TYPE_FIELD))
+        .where(doze.Where('refid').equals('id', kind=doze.FIELD))
     
     join, escape = join.sql()
     

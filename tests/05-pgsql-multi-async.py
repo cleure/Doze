@@ -36,6 +36,8 @@ def main():
         builder = pgsql.Builder(db).select('*').from_('metatags')
         builders.append(builder)
     
+    connections[3].close()
+    
     # Wait for connections and results to become available
     done = False
     while not done:

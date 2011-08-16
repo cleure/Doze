@@ -19,9 +19,9 @@ def main():
     builder.select('id, site, name, b.title, c.lang')\
         .from_(['givaways', 'a'])\
         .join(doze.Join(['subsites', 'b'],
-            where=doze.Where('site').equals('id', kind=doze.TYPE_FIELD)))\
+            where=doze.Where('site').equals('id', kind=doze.FIELD)))\
         .join(doze.Join(['languages', 'c'],
-            where=doze.Where('lang_id').equals('id', kind=doze.TYPE_FIELD)))
+            where=doze.Where('lang_id').equals('id', kind=doze.FIELD)))
     
     for i in doze.QueryResult(builder.cursor()):
         print i['name'] + "\t" + i['lang']

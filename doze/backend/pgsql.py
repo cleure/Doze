@@ -14,41 +14,24 @@ def connection_is_open(conn):
     that the backend has died, and will happily try to execute a query on
     the connection, raising an exception. This function is meant to eliminate
     that risk.
-    
-    It works by running 'SELECT 1' on the connection, and checking for an
-    exception. If an exception is thrown, it returns False.
     """
     try:
-        cursor = conn.cursor()
-        cursor.execute('SELECT 1')
+        conn.poll()
+        return True
     except:
-        return False
-    
-    cursor.close()
-    return True
+        pass
+    return False
 
 def connection_is_ready(conn):
     """
     Returns True when connection is ready for commands.
-    
-    This also calls connection_is_ready(), even if an async connection
-    tells us that it's open and ready for commands, since it still may have
-    been closed.
     """
-    if conn.async == True:
+    try:
         if conn.poll() == psycopg2.extensions.POLL_OK:
-        
-            # Test if connection open on async connection
-            if connection_is_open(conn) == False:
-                return False
             return True
-        return False
-    
-    # Test if connection is open on sync connection
-    if connection_is_open(conn) == False:
-        return False
-    
-    return True
+    except:
+        pass
+    return False
 
 class Where(generic.Where):
     pass

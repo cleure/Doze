@@ -94,18 +94,18 @@ class Where(BaseClause):
         'destType',
         'destAlias']
 
-    def __init__(self, field, kind = TYPE_FIELD, alias = None):
+    def __init__(self, field, kind = FIELD, alias = None):
         super(Where, self).__init__()
         self.current = [None, field, kind, alias]
         self.where = []
         self.tableContext = None
     
     def __getattr__(self, key):
-        def setCurrent(field, kind = TYPE_FIELD, alias = None):
+        def setCurrent(field, kind = FIELD, alias = None):
             self.current = [key, field, kind, alias]
             return self
     
-        def setWhere(value = None, kind = TYPE_VALUE, alias = None):
+        def setWhere(value = None, kind = VALUE, alias = None):
             temp = self.current
             temp.extend([key, value, kind, alias])
             self.where.append(temp)
@@ -126,7 +126,7 @@ class Where(BaseClause):
         dest = each['destName']
         escape = []
         
-        if each['sourceType'] == TYPE_VALUE:
+        if each['sourceType'] == VALUE:
             # Source is a value
             source = '%s'
             escape.append(each['sourceName'])
@@ -134,7 +134,7 @@ class Where(BaseClause):
             source = self.getAliasedField(each['sourceName'],\
                 each['sourceAlias'], 'origin')
                 
-        if each['destType'] == TYPE_VALUE:
+        if each['destType'] == VALUE:
             # Dest is value
             dest = '%s'
             
@@ -238,19 +238,19 @@ class Join(BaseClause):
     *
     * # Using Join directly
     * context = TableContext(['maintable', 'a'])
-    * join = Join(['table2', 'b']).where(Where('refid').equals('id', kind=TYPE_FIELD))
+    * join = Join(['table2', 'b']).where(Where('refid').equals('id', kind=FIELD))
     * join.setTableContext(context)
     * sql, escape = join.sql()
     *
     * # Using Join through Builder
     * builder.select('*').from_(['table1', 'a'])\
-    *   .join(Join(['table2', 'b']).where(Where('refid').equals('id', kind=TYPE_FIELD)))
+    *   .join(Join(['table2', 'b']).where(Where('refid').equals('id', kind=FIELD)))
     *
     * # Specifying a more specific alias context
     * builder.select('*').from(['table1', 'a'])\
     *   .join(Join(['table2', 'b']).where(...))\
     *   .join(Join(['table3', 'c']).where(
-    *       Where('refid', alias='b').equals('id', kind=TYPE_FIELD)))
+    *       Where('refid', alias='b').equals('id', kind=FIELD)))
     **
     """
     def __init__(self, table, kind = JOIN_INNER, where = None, context = None):

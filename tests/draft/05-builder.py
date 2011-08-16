@@ -10,7 +10,7 @@ def main():
         .from_(['mytable', 'a'])
     
     builder.join(doze.Join(['table2', 'b'])\
-        .where(doze.Where('ref_id').equals('id', kind=doze.TYPE_FIELD)))
+        .where(doze.Where('ref_id').equals('id', kind=doze.FIELD)))
     
     builder.where(doze.Where('id').gt(25).and_('id').lt(100))
     
