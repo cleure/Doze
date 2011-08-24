@@ -187,11 +187,7 @@ class Where(BaseClause):
         return expression[0] + " != ''"
 
     def sql(self):
-        """ Build SQL and return string """
-        
-        # Return callers sql() method
-        if not self.caller == None:
-            return self.caller.sql()
+        """ Build SQL and return (query, escape) """
         
         sql = []
         escape = []

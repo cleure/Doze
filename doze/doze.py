@@ -205,16 +205,20 @@ class TableContext(object):
                 yield [k, v[0]]
 
 class BaseClause(object):
+    """
+    This is the Base class, which is extended by various other classes such as
+    Join, Where, and Builder. It provides generic utility methods for handling
+    SQL functions, and aliased fields.
+    
+    In the future, there will need to be some way to override this class, so
+    that database specific backends can replace these methods.
+    """
     def __init__(self):
-        self.caller = None
+        pass
 
     def setTableContext(self, ctx):
         """ Set the TableContext, for table aliases, etc """
         self.tableContext = ctx
-    
-    def setCaller(self, caller):
-        """ Sets a reference the previous caller """
-        self.caller = caller
     
     def getAliasedField(self, field, alias, kind = 'origin'):
         """ Get aliased field """
