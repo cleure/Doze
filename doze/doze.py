@@ -264,11 +264,7 @@ class BaseClause(object):
     def fieldIsAliased(self, field):
         """ Check if field is aliased """
         
-        for i in range(0, len(field)):
-            if field[i] == '.':
-                return True
-        
-        return False
+        return '.' in field
     
     def isSqlFunction(self, param):
         """
