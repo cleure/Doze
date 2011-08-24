@@ -298,8 +298,6 @@ class BaseClause(object):
         if '(' not in param or ')' not in param:
             return False
     
-        plen = len(param)
-    
         # These will be used to detect the open and close parentheses
         openParen = False
         closeParen = False
@@ -311,7 +309,7 @@ class BaseClause(object):
         # Fairly basic algorithm. It detects the state of quotes, and uses
         # that information to determine whether or not openParen / closeParen
         # should be changed when parentheses are detected.
-        for i in range(0, plen):
+        for i in range(0, len(param)):
             if param[i] == '\'':
                 if inDoubleQuote == False:
                     if inQuote == True:
