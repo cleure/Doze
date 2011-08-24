@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from doze import *
-import copy
 
 class Where(BaseClause):
     """
@@ -560,6 +559,7 @@ class Builder(BaseClause):
         cursor.execute(query, escape)
         return cursor
     
+    @ExceptionWrapper
     def asObject(self, fetchall = False, server = False, destroy = True, fetch = dict):
         """
         **
@@ -579,6 +579,7 @@ class Builder(BaseClause):
         cursor = self.cursor(server)
         return QueryResult(cursor, destroy, fetch)
     
+    @ExceptionWrapper
     def execute(self, server = False):
         cursor = self.cursor(server)
         cursor.close()
@@ -591,6 +592,18 @@ class Builder(BaseClause):
         elif self.kind == 'insert':
             return self.fromInsert()
     
+    @ExceptionWrapper
+    def commit(self):
+        """ Convenience wrapper for db.commit() """
+        if self.db is not None:
+            self.db.commit()
+    
+    @ExceptionWrapper
+    def rollback(self):
+        """ Convenience wrapper for db.rollback() """
+        if self.db is not None:
+            self.db.rollback()
+    
     def getConnection(self):
         """ Get database connection, if any """
         return self.db
@@ -598,16 +611,6 @@ class Builder(BaseClause):
     def setConnection(self, db):
         """ Set database connection """
         self.db = db
-    
-    def commit(self):
-        """ Convenience wrapper for db.commit() """
-        if self.db is not None:
-            self.db.commit()
-    
-    def rollback(self):
-        """ Convenience wrapper for db.rollback() """
-        if self.db is not None:
-            self.db.rollback()
     
     def isReady(self):
         return True

@@ -106,6 +106,7 @@ class Builder(generic.Builder):
         cursor.execute(query, escape)
         return cursor
     
+    @ExceptionWrapper
     def asObject(self, fetchall = False, server = False, destroy = True, fetch = dict):
         """
         **

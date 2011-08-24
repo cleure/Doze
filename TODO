@@ -3,6 +3,8 @@
     * MySQL and PostgreSQL have different table / column quoting characters:
         MySQL: `table`.`column` = 'something'
         PostgreSQL: "table"."column" = 'something'
+* Better in-code documentation
 * Support Functions NOW(), CURRENT_DATABASE(), etc
-* Asynchronous connection support for MySQL
+* Asynchronous connection support for MySQL (would require a driver besides MySQLdb)
 * Properly handle fields when they're quoted
+* Detect functions, so they won't be aliased in JOIN queries, etc
