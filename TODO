@@ -1,10 +1,8 @@
 
-* Properly implement backends. Currently, "generic" is the only one usable, while the API id being drafted.
+* The BaseClause class needs to be overridable for database specific backends
+* Properly handle fields when they're quoted
     * MySQL and PostgreSQL have different table / column quoting characters:
         MySQL: `table`.`column` = 'something'
         PostgreSQL: "table"."column" = 'something'
 * Better in-code documentation
-* Support Functions NOW(), CURRENT_DATABASE(), etc
 * Asynchronous connection support for MySQL (would require a driver besides MySQLdb)
-* Properly handle fields when they're quoted
-* The BaseClause class needs to be overridable for database specific backends
