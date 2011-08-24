@@ -266,6 +266,70 @@ class BaseClause(object):
         
         return False
     
+    def isSqlFunction(self, param):
+        """
+        Check if supplied argument is a SQL function. Note that this doesn't
+        detect all SQL functions. For instance, "SELECT CURRENT_DATE" will fail.
+        Further checking is required to filter out special cases such as those.
+        """
+    
+        # Constants, which are usually aliases for functions in most RDBMS
+        nonParenthesised = [
+            'CURRENT_TIME',
+            'CURRENT_DATE',
+            'CURRENT_TIMESTAMP',
+            'LOCALTIMESTAMP',
+            'CURRENT_USER'
+        ]
+    
+        # Check for constants / functions
+        if param.strip().upper() in nonParenthesised:
+            return True
+    
+        # Preliminary check for parenthesis
+        if '(' not in param or ')' not in param:
+            return False
+    
+        plen = len(param)
+    
+        # These will be used to detect the open and close parentheses
+        openParen = False
+        closeParen = False
+    
+        # State, for if we're currently in a quoted or double-quoted string
+        inQuote = False
+        inDoubleQuote = False
+    
+        # Fairly basic algorithm. It detects the state of quotes, and uses
+        # that information to determine whether or not openParen / closeParen
+        # should be changed when parentheses are detected.
+        for i in range(0, plen):
+            if param[i] == '\'':
+                if inDoubleQuote == False:
+                    if inQuote == True:
+                        inQuote = False
+                    else:
+                        inQuote = True
+    
+            if param[i] == '"':
+                if inQuote == False:
+                    if inDoubleQuote == True:
+                        inDoubleQuote = False
+                    else:
+                        inDoubleQuote = True
+    
+            if param[i] == '(' and not inDoubleQuote and not inQuote:
+                openParen = True
+        
+            if param[i] == ')' and not inDoubleQuote and not inQuote:
+                if openParen == True:
+                    # Found both parentheses. Can safely break.
+                    closeParen = True
+                    break
+    
+        return openParen and closeParen
+
+    
     def sql(self):
         """ Not Implemented """
         raise DozeError('sql method not implemented')

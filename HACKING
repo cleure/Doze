@@ -1,0 +1,53 @@
+--------------------------------------------------------------------------------
+
+========================================
+Class / Function Hierarchy
+========================================
+
+doze.py
+    DozeError(Exception) - General purpose exception for internal errors. Should
+        definitely be extended in the future to multiple exceptions.
+
+    ExceptionWrapper - Decorator for wrapping an external exception handler on
+        class methods.
+    
+    TableContext - Independent class for setting and referencing table contexts,
+        such as those used in JOINS.
+    
+    BaseClause - Base for classes in backend.generic.py such as Join, Where, and
+        Builder. Includes commonly used generic methods for handling field
+        aliases and detecting SQL functions. Currently there's no standardized
+        way of overriding this default class, which needs to change.
+
+backend/generic.py
+    Where - Class for handling WHERE clauses, for generic database backends.
+        Should suffice for most backends.
+    
+    Join - Class for handling JOIN clauses, for generic database backends.
+        Should suffice for most backends.
+    
+    QueryResult - Class for fetching results from a query. Database backends
+        will likely need to extend this to implement backend-specific code.
+    
+    Builder - Class for interacting with database objects, for generic database
+        backends. Will likely need to be extended by a backend-specific class
+        in order to implement backend-specific behavior, such as checking if
+        the connection is still open, obtaining server-side cursors, and
+        handling asynchronous database connections. Look at the pgsql backend,
+        if you're interested in implementing a new backend, to get an idea of
+        what will be involved.
+
+backend/pgsql.py
+    PostgreSQL specific backend, using psycopg2.
+    
+    connection_is_open - Function for checking if a database connection is
+        currently open.
+    
+    connection_is_ready - Function for checking if a database connection is
+        currently ready to accept new commands, create cursors, etc. Useful for
+        asynchronous connections.
+
+backend/mysql.py
+    MySQL specific backend, using MySQLdb. The backend driver may be switched
+    in the future, due to MySQLdb's inability to handle asynchronous
+    connections.

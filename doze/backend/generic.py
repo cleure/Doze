@@ -439,6 +439,8 @@ class Builder(BaseClause):
             for i in columns:
                 if self.fieldIsAliased(i):
                     cols.append(i)
+                elif self.isSqlFunction(i):
+                    cols.append(i)
                 else:
                     cols.append('.'.join([origin, i]))
             

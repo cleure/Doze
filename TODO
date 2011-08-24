@@ -7,4 +7,4 @@
 * Support Functions NOW(), CURRENT_DATABASE(), etc
 * Asynchronous connection support for MySQL (would require a driver besides MySQLdb)
 * Properly handle fields when they're quoted
-* Detect functions, so they won't be aliased in JOIN queries, etc
+* The BaseClause class needs to be overridable for database specific backends
