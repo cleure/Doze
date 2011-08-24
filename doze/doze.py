@@ -268,9 +268,17 @@ class BaseClause(object):
     
     def isSqlFunction(self, param):
         """
-        Check if supplied argument is a SQL function. Note that this doesn't
-        detect all SQL functions. For instance, "SELECT CURRENT_DATE" will fail.
-        Further checking is required to filter out special cases such as those.
+        Check if supplied argument is a SQL function. All database specific
+        constants, which wrap to functions, may not be detected by this method.
+        Also, PostgreSQL's "SELECT 'NOW()'::timestamp" functionality does not work
+        in this implementation.
+        
+        Currently detected constants are:
+            CURRENT_TIME
+            CURRENT_DATE
+            CURRENT_TIMESTAMP
+            LOCALTIMESTAMP
+            CURRENT_USER
         """
     
         # Constants, which are usually aliases for functions in most RDBMS
