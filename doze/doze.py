@@ -8,11 +8,30 @@ JOIN_INNER = 1
 JOIN_LEFT = 2
 JOIN_RIGHT = 3
 
-class DozeError(Exception):
-    def __init__(self, msg):
-        self.value = msg
-    def __str__(self):
-        return repr(self.value)
+# Default exception for internal errors
+class DozeError(Exception): pass
+
+def ExceptionWrapper(func):
+    """
+    Exception Wrapping Decorator for method calls. If it's applied to a
+    method, it will wrap the method in a try/except. On exception, it
+    checks for self.onError. When self.onError exists, and is callable,
+    it calls self.onError instead of raising an exception, passing the
+    exception as a parameter. From there on out, it's up to self.onError
+    to decide whether or not to throw an exception.
+    
+    Also very useful if you want to install cleanup handlers for certain
+    types of errors.
+    """
+    def wrapper(self, *args):
+        try:
+            return func(self, *args)
+        except Exception as ex:
+            if hasattr(self, 'onError') and hasattr(self.onError, '__call__'):
+                return self.onError(ex)
+            else:
+                raise ex
+    return wrapper
 
 class TableContext(object):
     """
@@ -246,7 +265,6 @@ class BaseClause(object):
                 return True
         
         return False
-        
     
     def sql(self):
         """ Not Implemented """

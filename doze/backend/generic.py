@@ -361,19 +361,34 @@ class QueryResult(object):
 
 class Builder(BaseClause):
     """ API Draft """
-    def __init__(self, db = None):
+    def __init__(self, db = None, onError = None):
         self.tableContext = TableContext()
         self.db = db
+        self.onError = onError
     
-    def select(self, columns):
+    def reset(self):
+        if self.tableContext is not None:
+            del self.tableContext
+        
+        # Common
         self.tableContext = TableContext()
-        self.kind = 'select'
-        self.joins = []
+        self.kind = None
         self.where_ = []
+        
+        # Select
+        self.joins = []
         self.having_ = None
         self.group_ = None
         self.order_ = None
         self.limit_ = None
+        self.columns = []
+        
+        # Insert / Update
+        self.values_ = []
+    
+    def select(self, columns):
+        self.reset()
+        self.kind = 'select'
         self.columns = columns
         
         return self
@@ -489,6 +504,43 @@ class Builder(BaseClause):
         
         return (' '.join(query), escape)
     
+    def insertInto(self, table):
+        self.reset()
+        self.kind = 'insert'
+        self.destination = table
+        return self
+    
+    def values(self, values):
+        self.values_ = values
+        return self
+    
+    def fromInsert(self):
+        """ From INSERT. Returns single SQL statement. """
+        
+        values = self.values_
+        query = ['INSERT INTO', self.destination]
+        
+        keys = []
+        vals = []
+        escape = []
+        for k, v in values.items():
+            keys.append(k)
+            vals.append('%s')
+            escape.append(v)
+        
+        query.append('(' + ', '.join(keys) + ')')
+        query.append('VALUES')
+        query.append('(' + ', '.join(vals) + ')')
+        
+        return (' '.join(query), escape)
+    
+    def update(self, table):
+        raise NotImplementedError('update() not implemented')
+    
+    def deleteFrom(self, table):
+        raise NotImplementedError('deleteFrom() not implemented')
+    
+    @ExceptionWrapper
     def cursor(self, server = False):
         """
         **
@@ -527,18 +579,17 @@ class Builder(BaseClause):
         cursor = self.cursor(server)
         return QueryResult(cursor, destroy, fetch)
     
-    def insertInto(self, table):
-        pass
+    def execute(self, server = False):
+        cursor = self.cursor(server)
+        cursor.close()
+        return self
     
-    def update(self, table):
-        pass
-    
-    def deleteFrom(self, table):
-        pass
-    
+    @ExceptionWrapper
     def sql(self):
         if self.kind == 'select':
             return self.fromSelect()
+        elif self.kind == 'insert':
+            return self.fromInsert()
     
     def getConnection(self):
         """ Get database connection, if any """
@@ -559,4 +610,7 @@ class Builder(BaseClause):
             self.db.rollback()
     
     def isReady(self):
+        return True
+    
+    def isConnected(self):
         return True

@@ -2,7 +2,7 @@
 import psycopg2
 import random
 
-from doze import DozeError, TableContext
+from doze import *
 import generic as generic
 
 def connection_is_open(conn):
@@ -46,9 +46,10 @@ class QueryResult(generic.QueryResult):
         return connection_is_ready(self.cursor.connection)
 
 class Builder(generic.Builder):
-    def __init__(self, db = None):
-        super(Builder, self).__init__(db)
+    def __init__(self, db = None, onError = None):
+        super(Builder, self).__init__(db, onError)
 
+    @ExceptionWrapper
     def cursor(self, server = False):
         """
         **
@@ -128,3 +129,8 @@ class Builder(generic.Builder):
         if self.db is None:
             return False
         return connection_is_ready(self.db)
+    
+    def isConnected(self):
+        if self.db is None:
+            return False
+        return connection_is_open(self.db)
