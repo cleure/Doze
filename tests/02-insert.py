@@ -16,7 +16,6 @@ def connect():
 
 def main():
     db = connect()
-    
     builder = pgsql.Builder(db)
     builder.insertInto('languages').values({
         'name': 'German',

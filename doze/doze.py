@@ -334,8 +334,3 @@ class BaseClause(object):
                     break
     
         return openParen and closeParen
-
-    
-    def sql(self):
-        """ Not Implemented """
-        raise DozeError('sql method not implemented')

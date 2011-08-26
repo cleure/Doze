@@ -380,6 +380,7 @@ class Builder(BaseClause):
         
         # Insert / Update
         self.values_ = []
+        self.destination = None
     
     def select(self, columns):
         self.reset()
@@ -502,6 +503,8 @@ class Builder(BaseClause):
         return (' '.join(query), escape)
     
     def insertInto(self, table):
+        """ Perform INSERT on table. """
+    
         self.reset()
         self.kind = 'insert'
         self.destination = table
@@ -532,10 +535,64 @@ class Builder(BaseClause):
         return (' '.join(query), escape)
     
     def update(self, table):
-        raise NotImplementedError('update() not implemented')
+        """ Perform UPDATE on table. """
+
+        self.reset()
+        self.kind = 'update'
+        self.destination = table
+        return self
+    
+    def set(self, values):
+        return self.values(values)
+    
+    def fromUpdate(self):
+        """ From UPDATE. Returns (query, escape) """
+        
+        values = self.values_
+        query = ['UPDATE', self.destination, 'SET']
+        
+        escape = []
+        vals = []
+        
+        for k, v in values.items():
+            vals.append(k + ' = %s')
+            escape.append(v)
+        
+        query.append(', '.join(vals))
+        
+        # WHERE
+        if len(self.where_) > 0:
+            query.append('WHERE')
+            for i in self.where_:
+                tmpquery, tmpescape = i.sql()
+                query.append(tmpquery)
+                escape.extend(tmpescape)
+        
+        return (' '.join(query), escape)
     
     def deleteFrom(self, table):
-        raise NotImplementedError('deleteFrom() not implemented')
+        """ Perform DELETE on table. """
+    
+        self.reset()
+        self.kind = 'delete'
+        self.destination = table
+        return self
+    
+    def fromDelete(self):
+        """ From DELETE. Returns (query, escape). """
+        
+        query = ['DELETE FROM', self.destination]
+        escape = []
+        
+        # WHERE
+        if len(self.where_) > 0:
+            query.append('WHERE')
+            for i in self.where_:
+                tmpquery, tmpescape = i.sql()
+                query.append(tmpquery)
+                escape.extend(tmpescape)
+        
+        return (' '.join(query), escape)
     
     @ExceptionWrapper
     def cursor(self, server = False):
@@ -589,6 +646,10 @@ class Builder(BaseClause):
             return self.fromSelect()
         elif self.kind == 'insert':
             return self.fromInsert()
+        elif self.kind == 'update':
+            return self.fromUpdate()
+        elif self.kind == 'delete':
+            return self.fromDelete()
     
     @ExceptionWrapper
     def commit(self):

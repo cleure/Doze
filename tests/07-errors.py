@@ -34,7 +34,7 @@ def main():
     db = connect()
     builder = pgsql.Builder(db, onError=MyExceptionHandler)
     cursor = builder.select('*').from_('missing_table').cursor()
-        
+    
     sys.exit(0)
 
 if __name__ == '__main__':
