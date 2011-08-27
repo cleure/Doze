@@ -5,6 +5,7 @@
     
     * In order to do this, backend specific WHERE operators need to be accessible
         from the generic backend somehow.
+* Setup per-method unit-tests, to make sure everything works as expected.
 * Properly handle fields when they're quoted
     * MySQL and PostgreSQL have different table / column quoting characters:
         MySQL: `table`.`column` = 'something'
