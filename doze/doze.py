@@ -266,7 +266,14 @@ class BaseClause(object):
         return aliased
     
     def fieldIsAliased(self, field):
-        """ Check if field is aliased """
+        """
+        Check if field is aliased.
+        
+        FIXME: This needs to iterate over the field, instead of doing a quick
+        check, otherwise strings like this will return True, even though they
+        should return False:
+            'value with a period.'
+        """
         
         return '.' in field
     

@@ -365,6 +365,14 @@ class Builder(BaseClause):
         self.onError = onError
     
     def reset(self):
+        """
+        Reset variables to undo everything cause by select: insertInto, update,
+        deleteFrom, etc.
+        
+        This is typically called from one of those methods, but may be useful to
+        call when recovering from an error.
+        """
+        
         if self.tableContext is not None:
             del self.tableContext
         
@@ -564,6 +572,10 @@ class Builder(BaseClause):
         vals = []
         
         for k, v in values.items():
+            if type(v) == list and v[1] == FIELD:
+                vals.append(k + ' = ' + v[0])
+                continue
+                
             vals.append(k + ' = %s')
             escape.append(v)
         

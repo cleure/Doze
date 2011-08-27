@@ -17,30 +17,22 @@ def connect():
 def main():
     db = connect()
     builder = pgsql.Builder(db)
-    foo = builder.update('languages').set({
-        'name': 'Japanese',
-        'lang': 'ja'
+    
+    # Perform basic update
+    builder.update('languages').set({
+        'name': 'German',
+        'lang': 'de'
     }).where(pgsql.Where('id').equals('10')).execute()
     
     builder.commit()
     
-    """
+    # Make the parameter a field, instead of a value
+    sql = builder.update('languages').set({
+        'lang': ['lang', doze.FIELD]
+    }).sql()
     
-    There needs to be a way to specify whether a value in a dictionary
-    should be treated as a value or a field, as during updates, one might
-    want to be able to perform something such as:
+    print sql[0]
     
-    UPDATE mytable SET /field1/ = /field2/ WHERE id = 100
-    
-    Perhaps Something like:
-        builder.update('mytable').set({
-            'field1': ['field2', doze.FIELD]
-        }).where(pgsql.Where('id').equals(100))
-    
-    It would also be useful if something similar could be done for selects.
-    
-    """
-        
     sys.exit(0)
 
 if __name__ == '__main__':

@@ -22,8 +22,6 @@ def main():
     
     print sql
     
-    builder.isQuoted("'foobar'")
-    
     sys.exit(0)
 
 if __name__ == '__main__':

@@ -33,11 +33,8 @@ def connection_is_ready(conn):
         pass
     return False
 
-class Where(generic.Where):
-    pass
-
-class Join(generic.Join):
-    pass
+class Where(generic.Where): pass
+class Join(generic.Join): pass
 
 class QueryResult(generic.QueryResult):
     def isReady(self):
