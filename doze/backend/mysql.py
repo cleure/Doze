@@ -14,6 +14,9 @@ class QueryResult(generic.QueryResult):
     pass
 
 class Builder(generic.Builder):
+    fieldQuote = '`'
+    valueQuote = '\''
+
     def cursor(self, server = False):
         """
         **

@@ -1,5 +1,10 @@
 
-* The BaseClause class needs to be overridable for database specific backends
+* Implement expression recognition, such as:
+    SELECT 1 = 1; 
+    SELECT ('foo' = 'bar')
+    
+    * In order to do this, backend specific WHERE operators need to be accessible
+        from the generic backend somehow.
 * Properly handle fields when they're quoted
     * MySQL and PostgreSQL have different table / column quoting characters:
         MySQL: `table`.`column` = 'something'

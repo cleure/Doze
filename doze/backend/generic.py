@@ -355,6 +355,9 @@ class QueryResult(object):
         return True
 
 class Builder(BaseClause):
+    fieldQuote = '`'
+    valueQuote = '\''
+
     """ API Draft """
     def __init__(self, db = None, onError = None):
         self.tableContext = TableContext()
@@ -434,9 +437,15 @@ class Builder(BaseClause):
             
             cols = []
             for i in columns:
-                if self.fieldIsAliased(i):
-                    cols.append(i)
-                elif self.isSqlFunction(i):
+                # Append field table when any of the following is true:
+                #   - Field is already aliased
+                #   - Field is an SQL function
+                #   - Field is a quoted value
+                #
+                # Otherwise, alias it with the origin table and append it.
+                if (self.fieldIsAliased(i)
+                or self.isSqlFunction(i)
+                or self.isQuotedValue(i)):
                     cols.append(i)
                 else:
                     cols.append('.'.join([origin, i]))

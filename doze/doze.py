@@ -213,6 +213,10 @@ class BaseClause(object):
     In the future, there will need to be some way to override this class, so
     that database specific backends can replace these methods.
     """
+    
+    fieldQuote = '`'
+    valueQuote = '\''
+    
     def __init__(self):
         pass
 
@@ -334,3 +338,13 @@ class BaseClause(object):
                     break
     
         return openParen and closeParen
+    
+    def isQuotedValue(self, param):
+        """ Return true if param is a valid quoted value. """
+        param = param.strip()
+        return param[0] == self.valueQuote and param[len(param)-1] == self.valueQuote
+    
+    def isQuotedField(self, param):
+        """ Return true if param is a valid quoted field. """
+        param = param.strip()
+        return param[0] == self.fieldQuote and param[len(param)-1] == self.fieldQuote

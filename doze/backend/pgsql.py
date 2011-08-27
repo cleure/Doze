@@ -46,6 +46,9 @@ class QueryResult(generic.QueryResult):
         return connection_is_ready(self.cursor.connection)
 
 class Builder(generic.Builder):
+    fieldQuote = '"'
+    valueQuote = '\''
+
     def __init__(self, db = None, onError = None):
         super(Builder, self).__init__(db, onError)
 
