@@ -269,13 +269,46 @@ class BaseClause(object):
         """
         Check if field is aliased.
         
-        FIXME: This needs to iterate over the field, instead of doing a quick
-        check, otherwise strings like this will return True, even though they
-        should return False:
-            'value with a period.'
+        First, a preliminary check is done to determine if "field" has an "."
+        in it. If it does, a further test is done to check that the "." is
+        outside of both field quotes and value quotes.
         """
         
-        return '.' in field
+        # Preliminary check
+        if '.' not in field:
+            return False
+        
+        # More detailed check
+        inFieldQuote = False
+        inValueQuote = False
+        
+        for i in range(0, len(field)):
+            if field[i] == self.fieldQuote and not inValueQuote:
+                if inFieldQuote:
+                    inFieldQuote = False
+                else:
+                    inFieldQuote = True
+                
+                # Continue from top
+                continue
+            
+            if field[i] == self.valueQuote and not inFieldQuote:
+                if inValueQuote:
+                    inValueQuote = False
+                else:
+                    inValueQuote = True
+                
+                # Continue from top
+                continue
+            
+            if (not inFieldQuote
+            and not inValueQuote
+            and field[i] == '.'):
+                # Not in any quotes, and character is "."
+                # Return True, no further processing is needed
+                return True
+        
+        return False
     
     def isSqlFunction(self, param):
         """
