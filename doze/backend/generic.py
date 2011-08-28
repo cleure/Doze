@@ -402,7 +402,19 @@ class Builder(BaseClause):
     
     def from_(self, source):
         self.source = source
-        if self.kind == 'select' and type(source) == list:
+        
+        # Expand sources, such as 'mytable a' to ['mytable', 'a']
+        # so that they can be used self.tableContext.
+        if type(source) == str:
+            if (not self.isQuotedValue(source)
+            and not self.isQuotedField(source)
+            and ' ' in source):
+                tmp = source.split(' ')
+                if len(tmp) == 2:
+                    source = tmp
+            
+        # Set self.tableContext
+        if type(source) == list and len(source) > 1:
             self.tableContext[source[0]] = source[1]
         
         return self
