@@ -33,8 +33,8 @@ clear that up. This is an example of Doze in action, using the current API draft
     import doze.backends.pgsql as pgsql
 
     builder = pgsql.Builder()
-    builder.select('a.*, b.somefield').from_('maintable, a'])\
+    builder.select('a.*, b.somefield').from_('maintable a')\
         .join(pgsql.Join('secondtable b').where(
-            pgsql.Where('refid').equals('id', kind=doze.TYPE_FIELD)))
+            pgsql.Where('refid').equals('id', kind=doze.FIELD)))
 
 Thats it!
