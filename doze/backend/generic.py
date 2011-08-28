@@ -226,6 +226,21 @@ class BaseClause(object):
         """ Return true if param is a valid quoted field. """
         param = param.strip()
         return param[0] == self.fieldQuote and param[len(param)-1] == self.fieldQuote
+    
+    def expandTable(self, table):
+        """
+        Expand table, such as 'mytable a' to ['mytable', 'a']
+        so that they can be used self.tableContext.
+        """
+        if type(table) == str:
+            if (not self.isQuotedValue(table)
+            and not self.isQuotedField(table)
+            and ' ' in table):
+                tmp = table.split(' ')
+                if len(tmp) == 2:
+                    table = tmp
+    
+        return table
 
 class Where(BaseClause):
     """
@@ -477,7 +492,7 @@ class Join(BaseClause):
     
         self.where_ = None
         self.tableContext = None
-        self.table = table
+        self.table = self.expandTable(table)
         self.kind = kind
         
         if isinstance(where, Where):
@@ -626,15 +641,8 @@ class Builder(BaseClause):
         return self
     
     def from_(self, source):
-        # Expand sources, such as 'mytable a' to ['mytable', 'a']
-        # so that they can be used self.tableContext.
-        if type(source) == str:
-            if (not self.isQuotedValue(source)
-            and not self.isQuotedField(source)
-            and ' ' in source):
-                tmp = source.split(' ')
-                if len(tmp) == 2:
-                    source = tmp
+        # Expand table
+        source = self.expandTable(source)
             
         # Set self.tableContext
         if type(source) == list and len(source) > 1:
