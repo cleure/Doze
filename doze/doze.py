@@ -380,9 +380,21 @@ class BaseClause(object):
         return openParen and closeParen
     
     def isQuotedValue(self, param):
-        """ Return true if param is a valid quoted value. """
+        """ Return true if param is a quoted value. """
         param = param.strip()
         return param[0] == self.valueQuote and param[len(param)-1] == self.valueQuote
+    
+    def isValue(self, param):
+        """ Return true if param is a value, quoted or otherwise. """
+        
+        if self.isQuotedValue(param):
+            return True
+        
+        param = param.strip()
+        if param.lower() in ['true', 'false']:
+            return True
+    
+        return param.isdigit()
     
     def isQuotedField(self, param):
         """ Return true if param is a valid quoted field. """

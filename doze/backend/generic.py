@@ -465,7 +465,7 @@ class Builder(BaseClause):
                 # Otherwise, alias it with the origin table and append it.
                 if (self.fieldIsAliased(i)
                 or self.isSqlFunction(i)
-                or self.isQuotedValue(i)):
+                or self.isValue(i)):
                     cols.append(i)
                 else:
                     cols.append('.'.join([origin, i]))
