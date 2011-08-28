@@ -33,8 +33,39 @@ def connection_is_ready(conn):
         pass
     return False
 
-class Where(generic.Where): pass
-class Join(generic.Join): pass
+class BaseClause(generic.BaseClause):
+    """
+    PostgreSQL specific implementation of the BaseClause class. Currently,
+    this extends BaseClause, and overrides the class variables for
+    booleanTypes, fieldQuote, and valueQuote.
+    """
+    
+    # Valid boolean types, in lowercase
+    # See: http://www.postgresql.org/docs/9.0/static/datatype-boolean.html
+    booleanTypes = [
+        "true",
+        "'true'",
+        "'t'",
+        "'yes'",
+        "'y'",
+        "'on'",
+        "'1'",
+        "false",
+        "'false'",
+        "'no'",
+        "'n'",
+        "'off'",
+        "'0'"
+    ]
+    
+    # Field quote
+    fieldQuote = '"'
+    
+    # Value quote
+    valueQuote = '\''
+
+class Where(generic.Where, BaseClause): pass
+class Join(generic.Join, BaseClause): pass
 
 class QueryResult(generic.QueryResult):
     def isReady(self):
@@ -42,10 +73,7 @@ class QueryResult(generic.QueryResult):
             return False
         return connection_is_ready(self.cursor.connection)
 
-class Builder(generic.Builder):
-    fieldQuote = '"'
-    valueQuote = '\''
-
+class Builder(generic.Builder, BaseClause):
     def __init__(self, db = None, onError = None):
         super(Builder, self).__init__(db, onError)
 
