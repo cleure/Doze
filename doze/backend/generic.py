@@ -8,9 +8,6 @@ class BaseClause(object):
     This is the Base class, which is extended by various other classes such as
     Join, Where, and Builder. It provides generic utility methods for handling
     SQL functions, and aliased fields.
-    
-    In the future, there will need to be some way to override this class, so
-    that database specific backends can replace these methods.
     """
     
     # Valid boolean types, in lowercase
@@ -165,6 +162,9 @@ class BaseClause(object):
                         inQuote = False
                     else:
                         inQuote = True
+                    
+                    # Continue from top
+                    continue
     
             if param[i] == '"':
                 if inQuote == False:
@@ -172,9 +172,15 @@ class BaseClause(object):
                         inDoubleQuote = False
                     else:
                         inDoubleQuote = True
+                    
+                    # Continue from top
+                    continue
     
             if param[i] == '(' and not inDoubleQuote and not inQuote:
                 openParen = True
+                
+                # Continue from top
+                continue
         
             if param[i] == ')' and not inDoubleQuote and not inQuote:
                 if openParen == True:
