@@ -2,13 +2,11 @@
 * Implement expression recognition, such as:
     SELECT 1 = 1; 
     SELECT ('foo' = 'bar')
+    SELECT CASE WHEN field = 1 THEN 'foo' ELSE 'bar' END AS field
     
     * In order to do this, backend specific WHERE operators need to be accessible
         from the generic backend somehow.
 * Setup per-method unit-tests, to make sure everything works as expected.
 * Properly handle fields when they're quoted
-    * MySQL and PostgreSQL have different table / column quoting characters:
-        MySQL: `table`.`column` = 'something'
-        PostgreSQL: "table"."column" = 'something'
 * Better in-code documentation
 * Asynchronous connection support for MySQL (would require a driver besides MySQLdb)

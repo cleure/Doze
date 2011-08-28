@@ -612,6 +612,7 @@ class Builder(BaseClause):
         self.order_ = None
         self.limit_ = None
         self.columns = []
+        self.source = None
         
         # Insert / Update
         self.values_ = []
@@ -625,8 +626,6 @@ class Builder(BaseClause):
         return self
     
     def from_(self, source):
-        self.source = source
-        
         # Expand sources, such as 'mytable a' to ['mytable', 'a']
         # so that they can be used self.tableContext.
         if type(source) == str:
@@ -641,6 +640,7 @@ class Builder(BaseClause):
         if type(source) == list and len(source) > 1:
             self.tableContext[source[0]] = source[1]
         
+        self.source = source
         return self
     
     def where(self, where):
@@ -702,12 +702,15 @@ class Builder(BaseClause):
         escape = []
         
         columns = self.normalizeColumns(self.columns)
-        query.extend([', '.join(columns), 'FROM'])
+        query.extend([', '.join(columns)])
         
-        if type(self.source) == list:
-            query.append(' '.join(self.source))
-        else:
-            query.append(self.source)
+        # FROM
+        if self.source is not None:
+            query.append('FROM')
+            if type(self.source) == list:
+                query.append(' '.join(self.source))
+            else:
+                query.append(self.source)
         
         # JOIN
         if len(self.joins) > 0:
