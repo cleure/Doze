@@ -13,13 +13,12 @@ doze.py
     
     TableContext - Independent class for setting and referencing table contexts,
         such as those used in JOINS.
-    
-    BaseClause - Base for classes in backend.generic.py such as Join, Where, and
-        Builder. Includes commonly used generic methods for handling field
-        aliases and detecting SQL functions. Currently there's no standardized
-        way of overriding this default class, which needs to change.
 
 backend/generic.py
+    BaseClause - Base for classes in backend.generic.py such as Join, Where, and
+        Builder. Includes commonly used generic methods for handling field
+        aliases and detecting SQL functions.
+
     Where - Class for handling WHERE clauses, for generic database backends.
         Should suffice for most backends.
     

@@ -594,10 +594,8 @@ class QueryResult(object):
         return True
 
 class Builder(BaseClause):
-    fieldQuote = '`'
-    valueQuote = '\''
-
-    """ API Draft """
+    """ Builder Class. """
+    
     def __init__(self, db = None, onError = None):
         self.tableContext = TableContext()
         self.db = db
