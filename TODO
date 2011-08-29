@@ -6,8 +6,7 @@
     
     * In order to do this, backend specific WHERE operators need to be accessible
         from the generic backend somehow.
-* Implement sub-queries. eg:
-    SELECT * FROM mytable WHERE id IN (SELECT id FROM mytable);
+* Recognize /field/ AS /alias/? SELECT a AS b, etc.
 * Update in-code documentation (is out of date).
 * Setup per-method unit-tests, to make sure everything works as expected.
 * Properly handle fields when they're quoted

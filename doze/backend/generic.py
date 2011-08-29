@@ -152,7 +152,7 @@ class BaseClause(object):
         inQuote = False
         inDoubleQuote = False
     
-        # FIXME: Use self.fieldQuote???
+        # FIXME: Use self.fieldQuote and self.valueQuote???
     
         # Fairly basic algorithm. It detects the state of quotes, and uses
         # that information to determine whether or not openParen / closeParen
@@ -191,6 +191,21 @@ class BaseClause(object):
                     break
     
         return openParen and closeParen
+    
+    def isSelectQuery(self, param):
+        """
+        Determine if param is a SELECT query string, or not. Currently just does
+        basic checking. Parenthesised queries will fail. 
+        """
+    
+        param = param.strip().lower()
+        
+        # Preliminary check
+        if param[0:6] == 'select':
+            return True
+        
+        return False
+        
     
     def isQuotedValue(self, param):
         """ Return true if param is a quoted value. """
@@ -373,7 +388,7 @@ class Where(BaseClause):
         else:
             source = self.getAliasedField(each['sourceName'],\
                 each['sourceAlias'], 'origin')
-                
+        
         if each['destType'] == VALUE:
             # Dest is value
             dest = '%s'
@@ -410,9 +425,17 @@ class Where(BaseClause):
         return comparison
 
     def build_isIn(self, expression, each):
+        if len(expression[2]) == 1:
+            if self.isSelectQuery(expression[2][0]):
+                # Is a sub-query
+                return expression[0] + ' IN (' + expression[2][0] + ')'
         return expression[0] + ' IN (%s)' % ', '.join(['%s' for i in expression[2]])
 
     def build_notIn(self, expression, each):
+        if len(expression[2]) == 1:
+            if self.isSelectQuery(expression[2][0]):
+                # Is a sub-query
+                return expression[0] + ' NOT IN (' + expression[2][0] + ')'
         return expression[0] + ' NOT IN (%s)' % ', '.join(['%s' for i in expression[2]])
 
     def build_isNull(self, expression, each):
@@ -441,7 +464,15 @@ class Where(BaseClause):
             expr = self.parseExpression(each)
             
             # Extend escape list
-            escape.extend(expr[2])
+            if each['comp'] == 'isIn' or each['comp'] == 'isNotIn':
+                # Check if isIn/isNotIn has sub-query
+                if len(expr[2]) == 1 and self.isSelectQuery(expr[2][0]):
+                    # Don't append escape, if sub-query
+                    pass
+                else:
+                    escape.extend(expr[2])
+            else:
+                escape.extend(expr[2])
             
             # Build actual SQL string
             comp = self.buildComparison(expr, each)
