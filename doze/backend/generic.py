@@ -16,11 +16,11 @@ class BaseClause(object):
     # Field quote
     fieldQuote = '`'
     
+    # Field separator
+    fieldSeparator = '.'
+    
     # Value quote
     valueQuote = '\''
-    
-    def __init__(self):
-        pass
 
     def setTableContext(self, ctx):
         """ Set the TableContext, for table aliases, etc """
@@ -55,7 +55,7 @@ class BaseClause(object):
             else:
                 alias = alias[0]
             
-            aliased = alias + '.' + field
+            aliased = alias + self.fieldSeparator + field
         elif type(alias) == str:
             # Get from alias (string)
             if not ctx == None:
@@ -63,7 +63,7 @@ class BaseClause(object):
                 if alias in ctx:
                     alias = ctx[alias]
                     alias = alias[0]
-            aliased = alias + '.' + field
+            aliased = alias + self.fieldSeparator + field
         
         return aliased
     
@@ -77,7 +77,7 @@ class BaseClause(object):
         """
         
         # Preliminary check
-        if '.' not in field:
+        if self.fieldSeparator not in field:
             return False
         
         # More detailed check
@@ -105,7 +105,7 @@ class BaseClause(object):
             
             if (not inFieldQuote
             and not inValueQuote
-            and field[i] == '.'):
+            and field[i] == self.fieldSeparator):
                 # Not in any quotes, and character is "."
                 # Return True, no further processing is needed
                 return True
@@ -151,6 +151,8 @@ class BaseClause(object):
         # State, for if we're currently in a quoted or double-quoted string
         inQuote = False
         inDoubleQuote = False
+    
+        # FIXME: Use self.fieldQuote???
     
         # Fairly basic algorithm. It detects the state of quotes, and uses
         # that information to determine whether or not openParen / closeParen
@@ -420,10 +422,10 @@ class Where(BaseClause):
         return expression[0] + ' IS NOT NULL'
     
     def build_isEmpty(self, expression, each):
-        return expression[0] + " = ''"
+        return expression[0] + ' = ' + self.valueQuote + self.valueQuote
     
     def build_isNotEmpty(self, expression, each):
-        return expression[0] + " != ''"
+        return expression[0] + ' != ' + self.valueQuote + self.valueQuote
 
     def sql(self):
         """ Build SQL and return (query, escape) """
@@ -698,7 +700,7 @@ class Builder(BaseClause):
                 or self.isValue(i)):
                     cols.append(i)
                 else:
-                    cols.append('.'.join([origin, i]))
+                    cols.append(self.fieldSeparator.join([origin, i]))
             
             columns = cols
         return columns
