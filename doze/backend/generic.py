@@ -21,6 +21,10 @@ class BaseClause(object):
     
     # Value quote
     valueQuote = '\''
+    
+    # Characters which must be escaped / quoted to be understood literally by
+    # the backend, for use in field, tables, etc.
+    escapeLiterals = ' `~!@#$%^&*()-=+[]{}\\|;:\'",.<>/?'
 
     def setTableContext(self, ctx):
         """ Set the TableContext, for table aliases, etc """
@@ -249,6 +253,19 @@ class BaseClause(object):
                     table = tmp
     
         return table
+    
+    def fieldNeedsQuoted(self, field):
+        """ Check if table or field needs to be quoted. """
+        
+        if self.isQuotedField(field):
+            return False
+        
+        # Search for literals which need to be quoted
+        for literal in self.escapeLiterals:
+            if literal in field:
+                return True
+        
+        return False
 
 class Where(BaseClause):
     """

@@ -100,6 +100,39 @@ class DozeTestFramework(object):
         
         return status
 
+    def fieldNeedsQuotedMethod(self):
+        """ Test for fieldNeedsQuoted method. """
+        
+        tests = [
+            [pgsql, {
+                'field': False,
+                'contains spaces': True,
+                'contains " quote': True,
+                'contains \' quote': True,
+                'has_underscore': False,
+                '`mysql`': True
+            }]
+        ]
+        
+        failMsg = ('Failed isSelectQuery("%s")\n'
+            + '\tOn object: "%s"\n'
+            + '\tExpected: "%s"\n'
+            + '\tReturned: "%s"')
+        
+        status = True
+        
+        for i in tests:
+            backend = i[0]
+            
+            builder = backend.Builder()
+            for test, expected in i[1].items():
+                result = builder.fieldNeedsQuoted(test)
+                if result != expected:
+                    print failMsg % (test, builder, expected, result)
+                    status = False
+        
+        return status
+
     def go(self):
         for name, item in self.__class__.__dict__.items():
             # Skip ourself
@@ -124,3 +157,5 @@ class DozeTestFramework(object):
 if __name__ == '__main__':
     dtf = DozeTestFramework()
     dtf.go()
+    
+    builder = pgsql.Builder()
