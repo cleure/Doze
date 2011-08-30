@@ -10,128 +10,41 @@ import doze.backend.generic as generic
 
 class DozeTestFramework(object):
     def __init__(self):
-        self.backends = [pgsql, mysql, generic]
-
-    def __registerFailure(self, func): pass
-
-    def sqlFunctionMethod(self):
-        """ Test for the isSqlFunction method. """
-        tests = {
-            'function()': True,
-            'CURRENT_TIMESTAMP': True,
-            'NOW()': True,
-            '\'\function()\'': False,
-            'field': False,
-            '\'value\'': False,
-            '`table`.`field()`': False
-        }
+        self.methodTests = []
+    
+    def __methodTest(self, obj, funcName, tests):
+        failMsg = ('Failed: %s()\n'
+            + '\tParameters: %s\n'
+            + '\tExpected: %s\n'
+            + '\tReturned: %s')
         
-        failMsg = ('Failed: isSqlFunction("%s")\n'
-            + '\tOn object: "%s"\n'
-            + '\tExpected: "%s"\n'
-            + '\tReturned: "%s"')
-        
-        status = True
-        for backend in self.backends:
-            builder = backend.Builder()
-            
-            for test, expected in tests.items():
-                result = builder.isSqlFunction(test)
-                if result != expected:
-                    print failMsg % (test, builder, expected, result)
-                    status = False
-        
-        return status
-
-    def fieldIsAliasedMethod(self):
-        """ Test for fieldIsAliased method. """
-        
-        tests = {
-            'table.field': True,
-            '"pgsql table"."pgsql field"': True,
-            'field': False,
-            '\'value\'': False,
-            '`mysql table`.`mysql field`': True,
-            'field.': False
-        }
-        
-        failMsg = ('Failed fieldIsAliased("%s")\n'
-            + '\tOn object: "%s"\n'
-            + '\tExpected: "%s"\n'
-            + '\tReturned: "%s"')
-        
-        status = True
-        for backend in self.backends:
-            builder = backend.Builder()
-            for test, expected in tests.items():
-                result = builder.fieldIsAliased(test)
-                if result != expected:
-                    print failMsg % (test, builder, expected, result)
-                    status = False
-        
-        return status
-
-    def isSelectQueryMethod(self):
-        """ Test for isSelectQuery method. """
-        
-        tests = {
-            'SELECT 1': True,
-            'SELECT * FROM mytable': True,
-            '\'value\'': False,
-            '"pg table"."pg field"': False,
-            '\'SELECT foo\'': False,
-            '"SELECT pgsql"': False,
-            '`SELECT mysql`': False
-        }
-        
-        failMsg = ('Failed isSelectQuery("%s")\n'
-            + '\tOn object: "%s"\n'
-            + '\tExpected: "%s"\n'
-            + '\tReturned: "%s"')
-        
-        status = True
-        for backend in self.backends:
-            builder = backend.Builder()
-            for test, expected in tests.items():
-                result = builder.isSelectQuery(test)
-                if result != expected:
-                    print failMsg % (test, builder, expected, result)
-                    status = False
-        
-        return status
-
-    def fieldNeedsQuotedMethod(self):
-        """ Test for fieldNeedsQuoted method. """
-        
-        tests = [
-            [pgsql, {
-                'field': False,
-                'contains spaces': True,
-                'contains " quote': True,
-                'contains \' quote': True,
-                'has_underscore': False,
-                '`mysql`': True
-            }]
-        ]
-        
-        failMsg = ('Failed isSelectQuery("%s")\n'
-            + '\tOn object: "%s"\n'
-            + '\tExpected: "%s"\n'
-            + '\tReturned: "%s"')
-        
+        func = getattr(obj, funcName)
         status = True
         
-        for i in tests:
-            backend = i[0]
-            
-            builder = backend.Builder()
-            for test, expected in i[1].items():
-                result = builder.fieldNeedsQuoted(test)
-                if result != expected:
-                    print failMsg % (test, builder, expected, result)
-                    status = False
+        for test in tests:
+            result = func(*test[0])
+            if result != test[1]:
+                print failMsg % (func.__name__, str(test[0]), test[1], result)
+                status = False
         
         return status
+    
+    def registerMethodTest(self, obj, funcName, tests):
+        self.methodTests.append([obj, funcName, tests])
+    
+    def doMethodTests(self):
+        for obj, funcName, tests in self.methodTests:
+            try:
+                res = self.__methodTest(obj, funcName, tests)
+                if res == False:
+                    print '%s() on %s: Failed' % (funcName, obj.__class__)
+                else:
+                    print '%s() on %s: Passed' % (funcName, obj.__class__)
+            except Exception as e:
+                print '%s() on %s: Failed with exception "%s"' % (
+                    funcName, obj.__class__, e.__class__)
+                
+                raise e
 
     def go(self):
         for name, item in self.__class__.__dict__.items():
@@ -152,8 +65,93 @@ class DozeTestFramework(object):
             except:
                 print '%s(): failed with exception' % (item.__name__)
                 raise
-            
 
 if __name__ == '__main__':
     dtf = DozeTestFramework()
-    dtf.go()
+
+    pgsql_Builder = pgsql.Builder()
+    mysql_Builder = mysql.Builder()
+    generic_Builder = generic.Builder()
+    
+    # isSqlFunction method tests
+    dtf.registerMethodTest(mysql_Builder, 'isSqlFunction', [
+        [['CURRENT_TIMESTAMP'], True],
+        [['NOW()'], True],
+        [['function()'], True],
+        [['\'value\''], False],
+        [['\'field()\''], False],
+        [['`field()`'], False]
+    ])
+    
+    dtf.registerMethodTest(pgsql_Builder, 'isSqlFunction', [
+        [['CURRENT_TIMESTAMP'], True],
+        [['NOW()'], True],
+        [['function()'], True],
+        [['\'value\''], False],
+        [['\'field()\''], False],
+        [['"field()"'], False]
+    ])
+    
+    # fieldIsAliased method tests
+    dtf.registerMethodTest(mysql_Builder, 'fieldIsAliased', [
+        [['table.field'], True],
+        [['field'], False],
+        [['\'value\''], False],
+        [['`table`.`field`'], True],
+        [['table.'], False],
+        [['`with` . `spaces`'], True]
+    ])
+    
+    dtf.registerMethodTest(pgsql_Builder, 'fieldIsAliased', [
+        [['table.field'], True],
+        [['field'], False],
+        [['\'value\''], False],
+        [['"table"."field"'], True],
+        [['table.'], False],
+        [['"with" . "spaces"'], True]
+    ])
+    
+    # isSelectQuery method tests
+    dtf.registerMethodTest(mysql_Builder, 'isSelectQuery', [
+        [['table.field'], False],
+        [['SELECT NOW()'], True],
+        [['SELECT * FROM table'], True],
+        [['\'SELECT NOW()\''], False]
+    ])
+    
+    dtf.registerMethodTest(pgsql_Builder, 'isSelectQuery', [
+        [['table.field'], False],
+        [['SELECT NOW()'], True],
+        [['SELECT * FROM table'], True],
+        [['\'SELECT NOW()\''], False]
+    ])
+    
+    # fieldNeedsQuotes method tests
+    dtf.registerMethodTest(mysql_Builder, 'fieldNeedsQuoted', [
+        [['table'], False],
+        [['"table"'], True],
+        [['`table`'], False],
+        [['table!$'], True]
+    ])
+    
+    dtf.registerMethodTest(pgsql_Builder, 'fieldNeedsQuoted', [
+        [['table'], False],
+        [['"table"'], False],
+        [['`table`'], True],
+        [['table!$'], True]
+    ])
+    
+    # quoteField method tests
+    dtf.registerMethodTest(mysql_Builder, 'quoteField', [
+        [['table'], '`table`'],
+        [['`table`'], '```table```']
+    ])
+    
+    dtf.registerMethodTest(pgsql_Builder, 'quoteField', [
+        [['table'], '"table"'],
+        [['"table"'], '"""table"""']
+    ])
+    
+    dtf.doMethodTests()
+    
+    #dtf.go()
