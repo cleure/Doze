@@ -205,7 +205,6 @@ class BaseClause(object):
             return True
         
         return False
-        
     
     def isQuotedValue(self, param):
         """ Return true if param is a quoted value. """
