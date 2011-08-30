@@ -44,6 +44,8 @@ class DozeTestFramework(object):
         return status
 
     def fieldIsAliasedMethod(self):
+        """ Test for fieldIsAliased method. """
+        
         tests = {
             'table.field': True,
             '"pgsql table"."pgsql field"': True,
@@ -63,6 +65,35 @@ class DozeTestFramework(object):
             builder = backend.Builder()
             for test, expected in tests.items():
                 result = builder.fieldIsAliased(test)
+                if result != expected:
+                    print failMsg % (test, builder, expected, result)
+                    status = False
+        
+        return status
+
+    def isSelectQueryMethod(self):
+        """ Test for isSelectQuery method. """
+        
+        tests = {
+            'SELECT 1': True,
+            'SELECT * FROM mytable': True,
+            '\'value\'': False,
+            '"pg table"."pg field"': False,
+            '\'SELECT foo\'': False,
+            '"SELECT pgsql"': False,
+            '`SELECT mysql`': False
+        }
+        
+        failMsg = ('Failed isSelectQuery("%s")\n'
+            + '\tOn object: "%s"\n'
+            + '\tExpected: "%s"\n'
+            + '\tReturned: "%s"')
+        
+        status = True
+        for backend in self.backends:
+            builder = backend.Builder()
+            for test, expected in tests.items():
+                result = builder.isSelectQuery(test)
                 if result != expected:
                     print failMsg % (test, builder, expected, result)
                     status = False
