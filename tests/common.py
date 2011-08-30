@@ -15,6 +15,7 @@ class DozeTestFramework(object):
     def __registerFailure(self, func): pass
 
     def sqlFunctionMethod(self):
+        """ Test for the isSqlFunction method. """
         tests = {
             'function()': True,
             'CURRENT_TIMESTAMP': True,
@@ -26,7 +27,7 @@ class DozeTestFramework(object):
         }
         
         failMsg = ('Failed: isSqlFunction("%s")\n'
-            + '\tOn object "%s"\n'
+            + '\tOn object: "%s"\n'
             + '\tExpected: "%s"\n'
             + '\tReturned: "%s"')
         
@@ -36,6 +37,32 @@ class DozeTestFramework(object):
             
             for test, expected in tests.items():
                 result = builder.isSqlFunction(test)
+                if result != expected:
+                    print failMsg % (test, builder, expected, result)
+                    status = False
+        
+        return status
+
+    def fieldIsAliasedMethod(self):
+        tests = {
+            'table.field': True,
+            '"pgsql table"."pgsql field"': True,
+            'field': False,
+            '\'value\'': False,
+            '`mysql table`.`mysql field`': True,
+            'field.': False
+        }
+        
+        failMsg = ('Failed fieldIsAliased("%s")\n'
+            + '\tOn object: "%s"\n'
+            + '\tExpected: "%s"\n'
+            + '\tReturned: "%s"')
+        
+        status = True
+        for backend in self.backends:
+            builder = backend.Builder()
+            for test, expected in tests.items():
+                result = builder.fieldIsAliased(test)
                 if result != expected:
                     print failMsg % (test, builder, expected, result)
                     status = False

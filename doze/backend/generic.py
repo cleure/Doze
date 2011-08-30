@@ -83,8 +83,9 @@ class BaseClause(object):
         # More detailed check
         inFieldQuote = False
         inValueQuote = False
+        fieldLen = len(field)
         
-        for i in range(0, len(field)):
+        for i in range(0, fieldLen):
             if field[i] == self.fieldQuote and not inValueQuote:
                 if inFieldQuote:
                     inFieldQuote = False
@@ -105,7 +106,8 @@ class BaseClause(object):
             
             if (not inFieldQuote
             and not inValueQuote
-            and field[i] == self.fieldSeparator):
+            and field[i] == self.fieldSeparator
+            and (i + 1) < fieldLen):
                 # Not in any quotes, and character is "."
                 # Return True, no further processing is needed
                 return True
@@ -149,42 +151,32 @@ class BaseClause(object):
         closeParen = False
     
         # State, for if we're currently in a quoted or double-quoted string
-        inQuote = False
-        inDoubleQuote = False
-    
-        # FIXME: Use self.fieldQuote and self.valueQuote???
+        inFieldQuote = False
+        inValueQuote = False
     
         # Fairly basic algorithm. It detects the state of quotes, and uses
         # that information to determine whether or not openParen / closeParen
         # should be changed when parentheses are detected.
         for i in range(0, len(param)):
-            if param[i] == '\'':
-                if inDoubleQuote == False:
-                    if inQuote == True:
-                        inQuote = False
-                    else:
-                        inQuote = True
-                    
-                    # Continue from top
-                    continue
+            if param[i] == self.fieldQuote and not inValueQuote:
+                if inFieldQuote:
+                    inFieldQuote = False
+                else:
+                    inFieldQuote = True
+                continue
+            
+            if param[i] == self.valueQuote and not inFieldQuote:
+                if inValueQuote:
+                    inValueQuote = False
+                else:
+                    inValueQuote = True
+                continue
     
-            if param[i] == '"':
-                if inQuote == False:
-                    if inDoubleQuote == True:
-                        inDoubleQuote = False
-                    else:
-                        inDoubleQuote = True
-                    
-                    # Continue from top
-                    continue
-    
-            if param[i] == '(' and not inDoubleQuote and not inQuote:
+            if param[i] == '(' and not inFieldQuote and not inValueQuote:
                 openParen = True
-                
-                # Continue from top
                 continue
         
-            if param[i] == ')' and not inDoubleQuote and not inQuote:
+            if param[i] == ')' and not inFieldQuote and not inValueQuote:
                 if openParen == True:
                     # Found both parentheses. Can safely break.
                     closeParen = True
