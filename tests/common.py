@@ -157,5 +157,3 @@ class DozeTestFramework(object):
 if __name__ == '__main__':
     dtf = DozeTestFramework()
     dtf.go()
-    
-    builder = pgsql.Builder()

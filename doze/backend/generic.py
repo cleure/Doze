@@ -59,6 +59,11 @@ class BaseClause(object):
             else:
                 alias = alias[0]
             
+            # Quote field?
+            if self.fieldNeedsQuoted(alias) or self.fieldNeedsQuoted(field):
+                alias = self.quoteField(alias)
+                field = self.quoteField(field)
+            
             aliased = alias + self.fieldSeparator + field
         elif type(alias) == str:
             # Get from alias (string)
@@ -67,6 +72,12 @@ class BaseClause(object):
                 if alias in ctx:
                     alias = ctx[alias]
                     alias = alias[0]
+            
+            # Quote field?
+            if self.fieldNeedsQuoted(alias) or self.fieldNeedsQuoted(field):
+                alias = self.quoteField(alias)
+                field = self.quoteField(field)
+            
             aliased = alias + self.fieldSeparator + field
         
         return aliased
@@ -266,6 +277,20 @@ class BaseClause(object):
                 return True
         
         return False
+    
+    def quoteField(self, field):
+        """ Escape and quote a field or table. """
+    
+        if self.fieldQuote in field:
+            escaped = ''
+            for i in range(0, len(field)):
+                if field[i] == self.fieldQuote:
+                    escaped += self.fieldQuote
+                escaped += field[i]
+        else:
+            escaped = field
+        
+        return self.fieldQuote + escaped + self.fieldQuote
 
 class Where(BaseClause):
     """
