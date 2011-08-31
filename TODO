@@ -7,6 +7,7 @@
     * In order to do this, backend specific WHERE operators need to be accessible
         from the generic backend somehow.
 * Recognize /field/ AS /alias/? SELECT a AS b, etc.
+* Split generic.py into multiple files, if it continues to grow at a rapid rate.
 * Update in-code documentation (is out of date).
 * Setup per-method unit-tests, to make sure everything works as expected.
 * Better in-code documentation

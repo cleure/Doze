@@ -31,7 +31,20 @@ class BaseClause(object):
         self.tableContext = ctx
     
     def getAliasedField(self, field, alias, kind = 'origin'):
-        """ Get aliased field """
+        """
+        Get aliased field. If the field already has a source table specified,
+        then that will be used. Otherwise, it will try and guess which table
+        each field belongs to, using the first join table. If the field / table
+        contains special characters, than it will automatically be escaped and
+        quoted.
+        
+        @param  field   Field.
+        @param  alias   Alias
+        @param  kind    Kind, either 'origin' or 'join'
+        
+        TODO: Simply the code below, and make documentation more clear.
+        """
+        
         ctx = self.tableContext
         aliased = field
         
@@ -212,6 +225,16 @@ class BaseClause(object):
             return True
         
         return False
+    
+    def isSqlExpression(self, param):
+        """
+        Determine if param is an SQL expression, such as "foo = 1", or
+        "CASE WHEN...", etc.
+        
+        Currently not implemented.
+        """
+        
+        raise NotImplemented('isSqlExpression Not Implemented')
     
     def isQuotedValue(self, param):
         """ Return true if param is a quoted value. """
