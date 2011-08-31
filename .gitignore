@@ -1,2 +1,4 @@
 *.pyc
-
+Doze.egg-info/*
+build/*
+dist/*
