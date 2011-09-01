@@ -689,6 +689,7 @@ class Builder(BaseClause):
         self.tableContext = TableContext()
         self.db = db
         self.onError = onError
+        self.kind = None
     
     def reset(self):
         """
@@ -717,11 +718,21 @@ class Builder(BaseClause):
         self.columns = []
         self.source = None
         
+        # With
+        self.with__ = []
+        self.withQueries = []
+        self.withIsRecursive = False
+        self.withNotComplete = False
+        
         # Insert / Update
         self.values_ = []
         self.destination = None
     
     def select(self, columns):
+        if self.kind == 'with' and self.withNotComplete:
+            self.columns = columns
+            return self
+            
         self.reset()
         self.kind = 'select'
         self.columns = columns
@@ -872,6 +883,54 @@ class Builder(BaseClause):
             query.append('LIMIT')
             query.append(str(self.limit_))
         
+        return (' '.join(query), escape)
+    
+    def with_(self, name, recursive=False):
+        """ Perform WITH / CTE query. """
+    
+        self.reset()
+        self.kind = 'with'
+        self.with__.append(name)
+        self.withIsRecursive = recursive
+        self.withNotComplete = True
+        
+        return self
+    
+    def as_(self, query, name = None):
+        """ AS, used in WITH / CTE queries """
+    
+        self.withQueries.append(query)
+        if name is not None:
+            self.with__.append(name)
+        
+        return self
+    
+    def fromWith(self):
+        """ Generate (query, escape) from WITH / CTE query. """
+    
+        escape = []
+        query = ['WITH']
+        withQuery = []
+        
+        if self.withIsRecursive:
+            query.append('RECURSIVE')
+        
+        for i in range(0, len(self.with__)):
+            if type(self.withQueries[i]) == str:
+                tmpquery = self.withQueries[i]
+                tmpescape = []
+            else:
+                (tmpquery, tmpescape) = self.withQueries[i].sql()
+            
+            escape.extend(tmpescape)
+            withQuery.append(' '.join([self.with__[i], 'AS', '(' + tmpquery + ')']))
+        
+        query.append(', '.join(withQuery))
+        (tmpquery, tmpescape) = self.fromSelect()
+        query.append(tmpquery)
+        escape.extend(tmpescape)
+        
+        self.withNotComplete = False
         return (' '.join(query), escape)
     
     def insertInto(self, table):
@@ -1026,6 +1085,8 @@ class Builder(BaseClause):
             return self.fromUpdate()
         elif self.kind == 'delete':
             return self.fromDelete()
+        elif self.kind == 'with':
+            return self.fromWith()
     
     @ExceptionWrapper
     def commit(self):
