@@ -713,6 +713,7 @@ class Builder(BaseClause):
         self.group_ = None
         self.order_ = None
         self.limit_ = None
+        self.union_ = []
         self.columns = []
         self.source = None
         
@@ -760,6 +761,10 @@ class Builder(BaseClause):
     
     def limit(self, limit):
         self.limit_ = limit
+        return self
+    
+    def union(self, query, all=False):
+        self.union_.append((query, all))
         return self
     
     def normalizeColumns(self, columns):
@@ -839,6 +844,22 @@ class Builder(BaseClause):
             tmpquery, tmpescape = self.having_.sql()
             query.append(tmpquery)
             escape.extend(tmpescape)
+        
+        # UNION / UNION ALL
+        if len(self.union_) > 0:
+            for union, all in self.union_:
+                if all:
+                    query.append('UNION ALL')
+                else:
+                    query.append('UNION')
+                
+                if type(union) == str:
+                    query.append(union)
+                    continue
+                
+                (tmpquery, tmpescape) = union.sql()
+                query.append(tmpquery)
+                escape.extend(tmpescape)
         
         # ORDER
         if not self.order_ == None:

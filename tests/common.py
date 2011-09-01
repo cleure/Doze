@@ -131,6 +131,17 @@ if __name__ == '__main__':
         [['"table"'], '"""table"""']
     ])
     
-    dtf.doMethodTests()
+    # isValue method tests
+    dtf.registerMethodTest(mysql_Builder, 'isValue', [
+        [['field'], False],
+        [['\'value\''], True],
+        [['`field`'], False]
+    ])
     
-    #dtf.go()
+    dtf.registerMethodTest(pgsql_Builder, 'isValue', [
+        [['field'], False],
+        [['\'value\''], True],
+        [['"field"'], False]
+    ])
+    
+    dtf.doMethodTests()
