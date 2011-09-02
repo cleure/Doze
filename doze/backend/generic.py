@@ -347,6 +347,7 @@ class Where(BaseClause):
     *    between(min, max)               - Between Min/Max
     *    operator(operator, field)       - Custom operator
     *    encapsulate                     - Encapsulate expression
+    *    exists                          - WHERE EXISTS (subquery)
     *
     * TODO:
     *   - Add support for sub-queries for isIn and notIn
@@ -398,22 +399,55 @@ class Where(BaseClause):
 
     # Key map
     map = [
-        'cond',
-        'sourceName',
-        'sourceType',
-        'sourceAlias',
-        'comp',
-        'destName',
-        'destType',
-        'destAlias']
+        'cond',             # Conditional AND/OR?
+        'sourceName',       # Name/value of source
+        'sourceType',       # Source type (doze.FIELD or doze.VALUE)
+        'sourceAlias',      # Alias for source table
+        'comp',             # Comparison Operator (see self.compOperators)
+        'destName',         # Name/value of destination
+        'destType',         # Destination type (doze.FIELD or doze.VALUE)
+        'destAlias']        # Alias for destination table
 
     def __init__(self, field, kind = FIELD, alias = None):
+        """
+        Initialize instance variables, etc. This will set self.current, with
+        the values that are passed to this method. It also calls the parent
+        __init__().
+        
+        @param  field   - str
+            Field name. Can be aliased, however, if it is aliased and
+            alias parameter is also set, the field will be treated literally,
+            which will likely lead to errors.
+        
+        @param  kind    - str
+            Field/value kind. If its set to doze.FIELD, then the given
+            field is treated as a field. If it is set to doze.VALUE, it
+            is treated as a value.
+        
+        @param  alias   - str
+            Optional alias for field. In most cases, you probably wont
+            need to use this.
+        """
+    
         super(Where, self).__init__()
         self.current = [None, field, kind, alias]
         self.where = []
         self.tableContext = None
     
     def __getattr__(self, key):
+        """
+        This method is used for handlind method calls, which don't actually
+        exist (such as equals(), isIn(), etc). Handled comparison operators,
+        such as "equals", 'notEquals' are in self.compOperators. Handled
+        conditionals such as "AND"/"OR" are in self.condOperators.
+        
+        If an invalid attribute is given, an AttributeError exception will be
+        raised.
+        
+        @param      key     - str, key name
+        @return     void
+        """
+        
         def setCurrent(field, kind = FIELD, alias = None):
             self.current = [key, field, kind, alias]
             return self
@@ -430,15 +464,22 @@ class Where(BaseClause):
         elif key in self.compOperators:
             return setWhere
         
-        raise AttributeError(str(self.__class__) + " instance has no attribute '" + key + "'")
+        raise AttributeError(str(self.__class__)
+            + " instance has no attribute '" + key + "'")
     
     def parseExpression(self, each):
-        """ Parse supplied expression """
+        """
+        Perform the initial parsing stage, and return tuple.
+        
+        @param  each    - dict, (see self.map for keys)
+        @return tuple of (source_value, destination_value, to_escape)
+        """
         data = []
         source = each['sourceName']
         dest = each['destName']
         escape = []
         
+        # Source
         if each['sourceType'] == VALUE:
             # Source is a value
             source = '%s'
@@ -447,16 +488,14 @@ class Where(BaseClause):
             source = self.getAliasedField(each['sourceName'],\
                 each['sourceAlias'], 'origin')
         
+        # Dest
         if each['destType'] == VALUE:
             # Dest is value
             dest = '%s'
             
-            if each['destName'] == None:
-                # NO-OP
-                pass
-            elif type(each['destName']) == list:
+            if type(each['destName']) == list:
                 escape.extend(each['destName'])
-            else:
+            elif each['destName'] is not None:
                 escape.append(each['destName'])
         else:
             # Dest is field
@@ -466,11 +505,18 @@ class Where(BaseClause):
         return (source, dest, escape)
 
     def buildComparison(self, expression, each):
-        """ Build comparison string """
+        """
+        Build comparison string.
+        
+        @param      expression  - list/tuple
+        @param      each        - dict
+        @return     str
+        """
         
         comparison = None
         simple = self.simpleCompOperators
         complex_ = self.complexCompOperators
+        funcName = 'build_' + each['comp']
         
         if each['comp'] in simple:
             if len(expression[2]) == 1 and self.isSelectQuery(expression[2][0]):
@@ -485,8 +531,8 @@ class Where(BaseClause):
                     expression[0],
                     simple[each['comp']],
                     expression[1]])
-        elif each['comp'] in complex_:
-            func = getattr(self, 'build_' + each['comp'])
+        elif hasattr(self, funcName):
+            func = getattr(self, funcName)
             comparison = func(expression, each)
         else:
             raise DozeError('Unsupported Operator: ' + each['comp'])

@@ -1,4 +1,5 @@
 
+* Cleanup Where class.
 * Implement expression recognition, such as:
     SELECT 1 = 1; 
     SELECT ('foo' = 'bar')
