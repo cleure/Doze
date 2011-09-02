@@ -234,7 +234,7 @@ class BaseClause(object):
         Currently not implemented.
         """
         
-        raise NotImplemented('isSqlExpression Not Implemented')
+        raise NotImplementedError('isSqlExpression Not Implemented')
     
     def isQuotedValue(self, param):
         """ Return true if param is a quoted value. """
@@ -724,6 +724,9 @@ class Builder(BaseClause):
         self.withIsRecursive = False
         self.withNotComplete = False
         
+        # General AS
+        self.as__ = None
+        
         # Insert / Update
         self.values_ = []
         self.destination = None
@@ -741,8 +744,10 @@ class Builder(BaseClause):
     
     def from_(self, source):
         # Expand table
-        source = self.expandTable(source)
-            
+        if source.__class__.__name__ == 'Builder':
+            if not source.kind == 'select':
+                raise ValueError('Builder passed not initialized for SELECT')
+        
         # Set self.tableContext
         if type(source) == list and len(source) > 1:
             self.tableContext[source[0]] = source[1]
@@ -808,7 +813,7 @@ class Builder(BaseClause):
             columns = cols
         return columns
     
-    def fromSelect(self):
+    def SqlForSelect(self):
         query = ['SELECT']
         escape = []
         
@@ -818,7 +823,21 @@ class Builder(BaseClause):
         # FROM
         if self.source is not None:
             query.append('FROM')
-            if type(self.source) == list:
+            
+            if self.source.__class__.__name__ == 'Builder':
+                # Source table is a sub-query
+                if self.source.as__ is not None:
+                    as_ = self.source.as__
+                else:
+                    as_ = 'not_specified'
+            
+                # Get parent SQL
+                (tmpquery, tmpescape) = self.source.sql()
+                
+                # Append query/escape
+                query.append('(' + tmpquery + ') AS ' + as_)
+                escape.extend(tmpescape)
+            elif type(self.source) == list:
                 query.append(' '.join(self.source))
             else:
                 query.append(self.source)
@@ -898,14 +917,17 @@ class Builder(BaseClause):
     
     def as_(self, query, name = None):
         """ AS, used in WITH / CTE queries """
-    
-        self.withQueries.append(query)
-        if name is not None:
-            self.with__.append(name)
+        
+        if self.kind == 'with':
+            self.withQueries.append(query)
+            if name is not None:
+                self.with__.append(name)
+        else:
+            self.as__ = query
         
         return self
     
-    def fromWith(self):
+    def SqlForWith(self):
         """ Generate (query, escape) from WITH / CTE query. """
     
         escape = []
@@ -926,7 +948,7 @@ class Builder(BaseClause):
             withQuery.append(' '.join([self.with__[i], 'AS', '(' + tmpquery + ')']))
         
         query.append(', '.join(withQuery))
-        (tmpquery, tmpescape) = self.fromSelect()
+        (tmpquery, tmpescape) = self.SqlForSelect()
         query.append(tmpquery)
         escape.extend(tmpescape)
         
@@ -945,7 +967,7 @@ class Builder(BaseClause):
         self.values_ = values
         return self
     
-    def fromInsert(self):
+    def SqlForInsert(self):
         """ From INSERT. Returns single SQL statement. """
         
         values = self.values_
@@ -976,7 +998,7 @@ class Builder(BaseClause):
     def set(self, values):
         return self.values(values)
     
-    def fromUpdate(self):
+    def SqlForUpdate(self):
         """ From UPDATE. Returns (query, escape) """
         
         values = self.values_
@@ -1013,7 +1035,7 @@ class Builder(BaseClause):
         self.destination = table
         return self
     
-    def fromDelete(self):
+    def SqlForDelete(self):
         """ From DELETE. Returns (query, escape). """
         
         query = ['DELETE FROM', self.destination]
@@ -1078,15 +1100,15 @@ class Builder(BaseClause):
     @ExceptionWrapper
     def sql(self):
         if self.kind == 'select':
-            return self.fromSelect()
+            return self.SqlForSelect()
         elif self.kind == 'insert':
-            return self.fromInsert()
+            return self.SqlForInsert()
         elif self.kind == 'update':
-            return self.fromUpdate()
+            return self.SqlForUpdate()
         elif self.kind == 'delete':
-            return self.fromDelete()
+            return self.SqlForDelete()
         elif self.kind == 'with':
-            return self.fromWith()
+            return self.SqlForWith()
     
     @ExceptionWrapper
     def commit(self):

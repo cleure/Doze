@@ -11,7 +11,6 @@ sys.path.append('../doze')
 import psycopg2
 import doze
 import doze.backend.pgsql as pgsql
-import time
 
 def connect():
     return psycopg2.connect(
@@ -25,6 +24,7 @@ def main():
     db = connect()
     builder = pgsql.Builder(db = db)
     
+    # Common Table Expressions
     subsites_complete = pgsql.Builder()\
         .select('id, domain').from_('subsites')\
         .union(pgsql.Builder()\
@@ -32,6 +32,12 @@ def main():
     
     builder.with_('a').as_(subsites_complete)\
         .select('*').from_('a').where(pgsql.Where('id').equals(1))
+    
+    print builder.sql()
+    
+    # Aliased Sub-queries
+    builder.select('*').from_(subsites_complete)\
+        .where(pgsql.Where('id').equals(1))
     
     print builder.sql()
     

@@ -7,9 +7,6 @@
     * In order to do this, backend specific WHERE operators need to be accessible
         from the generic backend somehow.
 * Recognize /field/ AS /alias/? SELECT a AS b, etc.
-* Implement recursive queries
-* Rename methods in Builder class that get called by sql(), as the nameing scheme
-    leads to ambiguity (builder.fromDelete sounds too similar to builder.deleteFrom).
 * Split generic.py into multiple files, if it continues to grow at a rapid rate.
 * Update in-code documentation (is out of date).
 * Setup per-method unit-tests, to make sure everything works as expected.

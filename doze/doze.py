@@ -10,6 +10,7 @@ JOIN_RIGHT = 3
 
 # Default exception for internal errors
 class DozeError(Exception): pass
+class NotSupported(Exception): pass
 
 def ExceptionWrapper(func):
     """
