@@ -217,6 +217,8 @@ class BaseClause(object):
         Determine if param is a SELECT query string, or not. Currently just does
         basic checking. Parenthesised queries will fail. 
         """
+        if not type(param) == str:
+            return False
     
         param = param.strip().lower()
         
@@ -471,7 +473,18 @@ class Where(BaseClause):
         complex_ = self.complexCompOperators
         
         if each['comp'] in simple:
-            comparison = ' '.join([expression[0], simple[each['comp']], expression[1]])
+            if len(expression[2]) == 1 and self.isSelectQuery(expression[2][0]):
+                # Sub-query handling
+                comparison = ' '.join([
+                    expression[0],
+                    simple[each['comp']],
+                    '(' + expression[2][0] + ')'])
+            else:
+                # Value handling
+                comparison = ' '.join([
+                    expression[0],
+                    simple[each['comp']],
+                    expression[1]])
         elif each['comp'] in complex_:
             func = getattr(self, 'build_' + each['comp'])
             comparison = func(expression, each)
@@ -519,13 +532,14 @@ class Where(BaseClause):
             # Parse expression
             expr = self.parseExpression(each)
             
-            # Extend escape list
-            if each['comp'] == 'isIn' or each['comp'] == 'isNotIn':
-                # Check if isIn/isNotIn has sub-query
-                if len(expr[2]) == 1 and self.isSelectQuery(expr[2][0]):
-                    # Don't append escape, if sub-query
-                    pass
-                else:
+            # Handle parameter being a builder object
+            if len(expr[2]) == 1:
+                if expr[2][0].__class__.__name__ == 'Builder':
+                    tmpquery, tmpescape = expr[2][0].sql()
+                    expr = (expr[0], expr[1], [tmpquery])
+                    escape.extend(tmpescape)
+                
+                if not self.isSelectQuery(expr[2][0]):
                     escape.extend(expr[2])
             else:
                 escape.extend(expr[2])
@@ -856,7 +870,9 @@ class Builder(BaseClause):
             tmplist = []
             
             for i in self.where_:
-                i.setTableContext(self.tableContext)
+                if not i.__class__.__name__ == 'Builder':
+                    i.setTableContext(self.tableContext)
+                
                 tmpquery, tmpescape = i.sql()
                 tmplist.append(tmpquery)
                 escape.extend(tmpescape)

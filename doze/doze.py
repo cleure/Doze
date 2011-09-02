@@ -25,13 +25,13 @@ def ExceptionWrapper(func):
     types of errors.
     """
     def wrapper(self, *args):
-        try:
-            return func(self, *args)
-        except Exception as ex:
-            if hasattr(self, 'onError') and hasattr(self.onError, '__call__'):
+        if hasattr(self, 'onError') and hasattr(self.onError, '__call__'):
+            try:
+                return func(self, *args)
+            except Exception as ex:
                 return self.onError(ex)
-            else:
-                raise ex
+        else:
+            return func(self, *args)
     return wrapper
 
 class TableContext(object):
