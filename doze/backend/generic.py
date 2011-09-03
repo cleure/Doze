@@ -377,7 +377,8 @@ class Where(BaseClause):
         'isNull',
         'isNotNull',
         'isEmpty',
-        'isNotEmpty']
+        'isNotEmpty',
+        'between']
     
     # Simple comparison operators
     simpleCompOperators = {
@@ -395,7 +396,8 @@ class Where(BaseClause):
         'isNull',
         'isNotNull',
         'isEmpty',
-        'isNotEmpty']
+        'isNotEmpty',
+        'between']
 
     # Key map
     map = [
@@ -453,9 +455,8 @@ class Where(BaseClause):
             return self
     
         def setWhere(value = None, kind = VALUE, alias = None):
-            temp = self.current
-            temp.extend([key, value, kind, alias])
-            self.where.append(temp)
+            self.current.extend([key, value, kind, alias])
+            self.where.append(self.current)
             self.current = None
             return self
     
@@ -466,6 +467,24 @@ class Where(BaseClause):
         
         raise AttributeError(str(self.__class__)
             + " instance has no attribute '" + key + "'")
+    
+    def between(self, min, max, kind = VALUE, alias = None):
+        """
+        Between uses its own method, so you don't have to pass arguments in a
+        list, due to limitations in the __getattr__ method.
+        
+        @param  min
+        @param  max
+        @kind   doze.FIELD or doze.VALUE
+        @alias  alias for field
+        @return reference to self
+        """
+        
+        self.current.extend(['between', [min, max], kind, alias])
+        self.where.append(self.current)
+        self.current = None
+        return self
+        
     
     def parseExpression(self, each):
         """
@@ -564,6 +583,9 @@ class Where(BaseClause):
     
     def build_isNotEmpty(self, expression, each):
         return expression[0] + ' != ' + self.valueQuote + self.valueQuote
+    
+    def build_between(self, expression, each):
+        return (expression[0] + ' BETWEEN %s AND %s')
 
     def sql(self):
         """ Build SQL and return (query, escape) """

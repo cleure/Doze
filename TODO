@@ -1,5 +1,8 @@
 
 * Cleanup Where class.
+    * Fully support subqueries. There's still some edge cases that dont work,
+    such as:
+        Where('id').between(/subquery/, /subquery/)
 * Implement expression recognition, such as:
     SELECT 1 = 1; 
     SELECT ('foo' = 'bar')
