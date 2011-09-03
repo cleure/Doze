@@ -329,31 +329,26 @@ class Where(BaseClause):
     * (where, escape) = Where('id').isIn([1, 2, 3]).and_('type').equals('image').sql()
     *
     * Supported Operators:
-    *    equals                  - Equals
-    *    notEquals               - Not equals
-    *    gt                      - Greater than (>)
-    *    gte                     - Greater than or equals (>=)
-    *    lt                      - Less than (<)
-    *    lte                     - Less than or equals (<=)
-    *    isIn                    - Is in [list]
-    *    notIn                   - Is not in [list]
-    *    isNull                  - Is null
-    *    isNotNull               - Is not null
-    *    isEmpty                 - Is empty
-    *    isNotEmpty              - Is not empty
+    *   equals                  - Equals
+    *   notEquals               - Not equals
+    *   gt                      - Greater than (>)
+    *   gte                     - Greater than or equals (>=)
+    *   lt                      - Less than (<)
+    *   lte                     - Less than or equals (<=)
+    *   isIn                    - Is in [list]
+    *   notIn                   - Is not in [list]
+    *   isNull                  - Is null
+    *   isNotNull               - Is not null
+    *   isEmpty                 - Is empty
+    *   isNotEmpty              - Is not empty
+    *   between (min, max)      - BETWEEN
+    *   like                    - LIKE
+    *   ilike                   - ILIKE
     *
     * Soon to be supported Operators:
-    *    like / iLike                    - LIKE / ILIKE
-    *    between(min, max)               - Between Min/Max
     *    operator(operator, field)       - Custom operator
-    *    encapsulate                     - Encapsulate expression
-    *    exists                          - WHERE EXISTS (subquery)
     *
     * TODO:
-    *   - Add support for sub-queries for isIn and notIn
-    *   - Add support for BETWEEN
-    *   - Add support for LIKE / ILIKE
-    *   - Encapsulate. Ex: WHERE (id = 5 OR parent = 3) AND type = 'type'
     *   - Custom operators. Ex: Where('geom').operator('@@')...
     *
     **
@@ -378,7 +373,10 @@ class Where(BaseClause):
         'isNotNull',
         'isEmpty',
         'isNotEmpty',
-        'between']
+        'between',
+        'like',
+        'ilike',
+        'exists']
     
     # Simple comparison operators
     simpleCompOperators = {
@@ -397,7 +395,10 @@ class Where(BaseClause):
         'isNotNull',
         'isEmpty',
         'isNotEmpty',
-        'between']
+        'between',
+        'like',
+        'ilike',
+        'exists']
 
     # Key map
     map = [
@@ -410,7 +411,7 @@ class Where(BaseClause):
         'destType',         # Destination type (doze.FIELD or doze.VALUE)
         'destAlias']        # Alias for destination table
 
-    def __init__(self, field, kind = FIELD, alias = None):
+    def __init__(self, field = None, kind = FIELD, alias = None):
         """
         Initialize instance variables, etc. This will set self.current, with
         the values that are passed to this method. It also calls the parent
@@ -420,6 +421,9 @@ class Where(BaseClause):
             Field name. Can be aliased, however, if it is aliased and
             alias parameter is also set, the field will be treated literally,
             which will likely lead to errors.
+            
+            NOTE: field can be None, but only for certain types of WHERE's,
+            such as EXISTS (sub-query).
         
         @param  kind    - str
             Field/value kind. If its set to doze.FIELD, then the given
@@ -521,7 +525,7 @@ class Where(BaseClause):
             dest = self.getAliasedField(each['destName'],\
                 each['destAlias'], 'join')
         
-        return (source, dest, escape)
+        return [source, dest, escape]
 
     def buildComparison(self, expression, each):
         """
@@ -585,7 +589,28 @@ class Where(BaseClause):
         return expression[0] + ' != ' + self.valueQuote + self.valueQuote
     
     def build_between(self, expression, each):
-        return (expression[0] + ' BETWEEN %s AND %s')
+        expr = []
+        for i in expression[2]:
+            if self.isSelectQuery(i):
+                expr.append('(' + i + ')')
+            else:
+                expr.append('%s')
+        return (expression[0] + ' BETWEEN ' + expr[0] + ' AND ' + expr[1])
+
+    def build_like(self, expression, each):
+        exprString = expression[0] + ' LIKE '
+        if self.isSelectQuery(expression[2][0]):
+            return exprString + '(' + expression[2][0] + ')'
+        return exprString + '%s'
+        
+    def build_ilike(self, expression, each):
+        exprString = expression[0] + ' ILIKE '
+        if self.isSelectQuery(expression[2][0]):
+            return exprString + '(' + expression[2][0] + ')'
+        return exprString + '%s'
+    
+    def build_exists(self, expression, each):
+        return 'EXISTS (' + expression[2][0] + ')'
 
     def sql(self):
         """ Build SQL and return (query, escape) """
@@ -597,18 +622,24 @@ class Where(BaseClause):
             # Dictionary-ize
             each = dict(zip(self.map, each))
             
+            #
+            # TODO: Store state of each expression[2] for isSelectQuery(). Since
+            # isSelectQuery() is pretty much guaranteed to be called multiple times.
+            #
+            
             # Parse expression
             expr = self.parseExpression(each)
             
-            # Handle parameter being a builder object
-            if len(expr[2]) == 1:
-                if expr[2][0].__class__.__name__ == 'Builder':
-                    tmpquery, tmpescape = expr[2][0].sql()
-                    expr = (expr[0], expr[1], [tmpquery])
-                    escape.extend(tmpescape)
+            # Handle parameter(s) being a builder object
+            if len(expr[2]) > 0:
+                for i in range(0, len(expr[2])):
+                    if expr[2][i].__class__.__name__ == 'Builder':
+                        tmpquery, tmpescape = expr[2][i].sql()
+                        expr[2][i] = tmpquery
+                        escape.extend(tmpescape)
                 
-                if not self.isSelectQuery(expr[2][0]):
-                    escape.extend(expr[2])
+                    if not self.isSelectQuery(expr[2][i]):
+                        escape.extend(expr[2])
             else:
                 escape.extend(expr[2])
             
