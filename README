@@ -30,7 +30,7 @@ You may be wondering what I'm talking about by being expressive. This may help t
 clear that up. This is an example of Doze in action, using the current API draft:
 
     import doze
-    import doze.backends.pgsql as pgsql
+    import doze.backend.pgsql as pgsql
 
     builder = pgsql.Builder()
     builder.select('a.*, b.somefield').from_('maintable a')\
