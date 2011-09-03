@@ -12,6 +12,9 @@ having multiple database connections open at the same time, to a variety of back
 servers (MySQL, PostgreSQL, and SQLite), and performing a variety of tasks to them
 simultaneously.
 
+One major goal is to be able to fully express the entirety of the SQL standard,
+though the API, while still resembling the SQL language.
+
 Currently, Doze is still in the API drafting stage, which means the API is likely
 to change in the future. The tests/ contains many tests for current working API.
 It's where you should look if you want to learn how to use it.
@@ -23,11 +26,11 @@ MySQLdb driver (there are a couple pure python implementations of the MySQL
 driver which solve this, however, I haven't had the time to look into them).
 
 =================================
-Examples of Expressive Queries
+Doze Examples
 =================================
 
-You may be wondering what I'm talking about by being expressive. This may help to
-clear that up. This is an example of Doze in action, using the current API draft:
+This is a working example of the Doze API. The API tries to resemble the SQL
+language as much as possible:
 
     import doze
     import doze.backend.pgsql as pgsql
@@ -37,4 +40,5 @@ clear that up. This is an example of Doze in action, using the current API draft
         .join(pgsql.Join('secondtable b').where(
             pgsql.Where('refid').equals('id', kind=doze.FIELD)))
 
-Thats it!
+When no table name / alias is given in the Join object, Doze will automatically
+attempt to determine tables.
