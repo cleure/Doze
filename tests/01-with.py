@@ -24,14 +24,6 @@ def main():
     db = connect()
     builder = pgsql.Builder(db = db)
     
-    subquery = pgsql.Builder().select('expr').from_('tst')
-    builder.select('*').from_('clubhouse_members').where(
-        pgsql.Where().exists(subquery))
-    
-    print builder.sql()
-    
-    sys.exit(0)
-    
     # Common Table Expressions
     subsites_complete = pgsql.Builder()\
         .select('id, domain').from_('subsites')\
