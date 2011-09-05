@@ -24,10 +24,10 @@ def ExceptionWrapper(func):
     Also very useful if you want to install cleanup handlers for certain
     types of errors.
     """
-    def wrapper(self, *args):
+    def wrapper(self, *args, **kargs):
         if hasattr(self, 'onError') and hasattr(self.onError, '__call__'):
             try:
-                return func(self, *args)
+                return func(self, *args, **kargs)
             except Exception as ex:
                 return self.onError(ex)
         else:

@@ -758,6 +758,9 @@ class QueryResult(object):
     
     def __iter__(self):
         res = self.cursor.fetchone()
+        if res == None:
+            yield None
+        
         if self.cursorDescrInit == False:
             self.initCursorDescr()
     
@@ -773,6 +776,9 @@ class QueryResult(object):
     
     def next(self):
         res = self.cursor.fetchone()
+        if res == None:
+            return None
+        
         if self.cursorDescrInit == False:
             self.initCursorDescr()
 
