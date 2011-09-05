@@ -28,7 +28,13 @@ class BaseClause(generic.BaseClause):
 
 class Where(generic.Where, BaseClause): pass
 class Join(generic.Join, BaseClause): pass
-class QueryResult(generic.QueryResult): pass
+
+class QueryResult(generic.QueryResult):
+    def initCursorDescr(self):
+        """ Init cursor description, for MySQL. """
+        for i in self.cursor.description:
+            self.labels.append(i[0])
+        self.cursorDescrInit = True
 
 class Builder(generic.Builder, BaseClause):
     """

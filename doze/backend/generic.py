@@ -1091,6 +1091,9 @@ class Builder(BaseClause):
     def SqlForInsert(self):
         """ From INSERT. Returns single SQL statement. """
         
+        if self.fieldNeedsQuoted(self.destination):
+            self.destination = self.quoteField(self.destination)
+        
         values = self.values_
         query = ['INSERT INTO', self.destination]
         
@@ -1121,6 +1124,9 @@ class Builder(BaseClause):
     
     def SqlForUpdate(self):
         """ From UPDATE. Returns (query, escape) """
+        
+        if self.fieldNeedsQuoted(self.destination):
+            self.destination = self.quoteField(self.destination)
         
         values = self.values_
         query = ['UPDATE', self.destination, 'SET']
@@ -1158,6 +1164,9 @@ class Builder(BaseClause):
     
     def SqlForDelete(self):
         """ From DELETE. Returns (query, escape). """
+        
+        if self.fieldNeedsQuoted(self.destination):
+            self.destination = self.quoteField(self.destination)
         
         query = ['DELETE FROM', self.destination]
         escape = []
