@@ -41,6 +41,7 @@ class Builder(generic.Builder, BaseClause):
     MySQL specific implementation of the Builder class.
     """
 
+    @ExceptionWrapper
     def cursor(self, server = False):
         """
         **
@@ -62,3 +63,23 @@ class Builder(generic.Builder, BaseClause):
             cursor = self.db.cursor()
         cursor.execute(query, escape)
         return cursor
+    
+    @ExceptionWrapper
+    def asObject(self, fetchall = False, server = False, destroy = True, fetch = dict):
+        """
+        **
+        * Execute query and return result object. If fetchall == True,
+        * cursor.fetchall() will be used instead of wrapping the cursor
+        * into an iterable object, and fetching as needed. If server == True,
+        * use a server-side cursor and wrap it in an object, so data can be
+        * downloaded as needed, instead of all at once.
+        *
+        * @param    fetchall    bool
+        * @param    server      bool
+        * @param    fetch       type, dict returns dictionaries, anything else
+        *                       returns tuples
+        * @return   QueryResult
+        **
+        """
+        cursor = self.cursor(server)
+        return QueryResult(cursor, destroy, fetch)
