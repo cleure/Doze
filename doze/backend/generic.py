@@ -1025,6 +1025,7 @@ class Builder(BaseClause):
         
         return (' '.join(query), escape)
     
+    @ExceptionWrapper
     def with_(self, name, recursive=False):
         """ Perform WITH / CTE query. """
     
@@ -1059,6 +1060,8 @@ class Builder(BaseClause):
             query.append('RECURSIVE')
         
         for i in range(0, len(self.with__)):
+            # FIXME: self.quoteField for table names / aliases???
+        
             if type(self.withQueries[i]) == str:
                 tmpquery = self.withQueries[i]
                 tmpescape = []

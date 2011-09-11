@@ -42,6 +42,11 @@ class Builder(generic.Builder, BaseClause):
     """
 
     @ExceptionWrapper
+    def with_(self, name, recursive=False):
+        """ MySQL doesn't support Common Table Expressions :( """
+        raise NotSupported('MySQL doesn\'t support Common Table Expressions :(')
+
+    @ExceptionWrapper
     def cursor(self, server = False):
         """
         **
