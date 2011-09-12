@@ -4,6 +4,7 @@
 * Cleanup Where class.
 * Cleanup Join class.
 * Cleanup BaseClause class.
+* Support Common Table Expression Write queries (DELETE, etc)
 * Implement expression recognition, such as:
     SELECT 1 = 1; 
     SELECT ('foo' = 'bar')

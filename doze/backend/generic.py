@@ -42,7 +42,7 @@ class BaseClause(object):
         @param  alias   Alias
         @param  kind    Kind, either 'origin' or 'join'
         
-        TODO: Simply the code below, and make documentation more clear.
+        TODO: Simplify the code below, and make documentation more clear.
         """
         
         ctx = self.tableContext
