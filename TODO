@@ -5,6 +5,7 @@
 * Cleanup Join class.
 * Cleanup BaseClause class.
 * Support Common Table Expression Write queries (DELETE, etc)
+    http://www.postgresql.org/docs/9.1/static/queries-with.html
 * Implement expression recognition, such as:
     SELECT 1 = 1; 
     SELECT ('foo' = 'bar')
