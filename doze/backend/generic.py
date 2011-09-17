@@ -721,8 +721,8 @@ class Join(BaseClause):
         """ Method which gets called before sql(), to update tableContext, etc. """
         ctx = self.tableContext
         
-        if type(self.table) == list and len(self.table) > 1\
-        and not ctx == None and not self.table[0] in ctx:
+        if (type(self.table) == list and len(self.table) > 1
+        and not ctx == None and not self.table[0] in ctx):
             ctx[self.table[0]] = self.table[1]
     
     def sql(self):
@@ -938,7 +938,7 @@ class Builder(BaseClause):
         # Joins need to be pre-processed
         #
         
-        print len(self.tableContext)
+        #print len(self.tableContext)
         
         if len(self.tableContext) > 0:
             origin = self.tableContext.origin()
@@ -956,9 +956,9 @@ class Builder(BaseClause):
                 #
                 # Otherwise, alias it with the origin table and append it.
                 
-                print 'fieldIsAliased (%s): %s' % (str(i), self.fieldIsAliased(i))
-                print 'isSqlFunction (%s): %s' % (str(i), self.isSqlFunction(i))
-                print 'isValue (%s): %s' % (str(i), self.isValue(i))
+                #print 'fieldIsAliased (%s): %s' % (str(i), self.fieldIsAliased(i))
+                #print 'isSqlFunction (%s): %s' % (str(i), self.isSqlFunction(i))
+                #print 'isValue (%s): %s' % (str(i), self.isValue(i))
                 
                 if (self.fieldIsAliased(i)
                 or self.isSqlFunction(i)
