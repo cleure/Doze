@@ -25,6 +25,9 @@ class BaseClause(object):
     # Characters which must be escaped / quoted to be understood literally by
     # the backend, for use in field, tables, etc.
     escapeLiterals = ' `~!@#$%^&*()-=+[]{}\\|;:\'",.<>/?'
+    
+    # Assignment / Comparison operators.
+    assignments = []
 
     def __init__(self):
         self.childObjects = []
@@ -237,6 +240,11 @@ class BaseClause(object):
         "CASE WHEN...", etc.
         
         Currently not implemented.
+        
+        In order to implement this, the comparison / assignment operators from
+        the Where class need to be move to this class. It might make sense, at
+        this point, to implement an engine which can create and parse these types
+        of expressions.
         """
         
         raise NotImplementedError('isSqlExpression Not Implemented')
@@ -938,7 +946,7 @@ class Builder(BaseClause):
         # Joins need to be pre-processed
         #
         
-        print len(self.tableContext)
+        #print len(self.tableContext)
         
         if len(self.tableContext) > 0:
             origin = self.tableContext.origin()
@@ -956,9 +964,9 @@ class Builder(BaseClause):
                 #
                 # Otherwise, alias it with the origin table and append it.
                 
-                print 'fieldIsAliased (%s): %s' % (str(i), self.fieldIsAliased(i))
-                print 'isSqlFunction (%s): %s' % (str(i), self.isSqlFunction(i))
-                print 'isValue (%s): %s' % (str(i), self.isValue(i))
+                #print 'fieldIsAliased (%s): %s' % (str(i), self.fieldIsAliased(i))
+                #print 'isSqlFunction (%s): %s' % (str(i), self.isSqlFunction(i))
+                #print 'isValue (%s): %s' % (str(i), self.isValue(i))
                 
                 if (self.fieldIsAliased(i)
                 or self.isSqlFunction(i)
