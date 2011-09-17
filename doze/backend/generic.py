@@ -26,6 +26,9 @@ class BaseClause(object):
     # the backend, for use in field, tables, etc.
     escapeLiterals = ' `~!@#$%^&*()-=+[]{}\\|;:\'",.<>/?'
 
+    def __init__(self):
+        self.childObjects = []
+
     def setTableContext(self, ctx):
         """ Set the TableContext, for table aliases, etc """
         self.tableContext = ctx
@@ -316,6 +319,13 @@ class BaseClause(object):
             escaped = field
         
         return self.fieldQuote + escaped + self.fieldQuote
+    
+    def preProcessSql(self):
+        """ Method which gets called before sql(), to update tableContext, etc. """
+        for i in self.childObjects:
+            if i.tableContext is None and self.tableContext is not None:
+                i.setTableContext(self.tableContext)
+            i.preProcessSql()
 
 class Where(BaseClause):
     """
@@ -707,6 +717,14 @@ class Join(BaseClause):
         self.where_ = where
         return self
     
+    def preProcessSql(self):
+        """ Method which gets called before sql(), to update tableContext, etc. """
+        ctx = self.tableContext
+        
+        if type(self.table) == list and len(self.table) > 1\
+        and not ctx == None and not self.table[0] in ctx:
+            ctx[self.table[0]] = self.table[1]
+    
     def sql(self):
         """ Build SQL and return string """
         ctx = self.tableContext
@@ -724,10 +742,9 @@ class Join(BaseClause):
         if not isinstance(self.where_, Where):
             raise TypeError('Where must be a valid Where class object')
 
-        # Auto add alias to table context
+        # Handle aliases table vs. non aliased
         if type(self.table) == list and len(self.table) > 1\
-        and not ctx == None and not self.table[0] in ctx:
-            ctx[self.table[0]] = self.table[1]
+        and not ctx == None:
             data.append(' '.join(self.table))
         else:
             if type(self.table) == str:
@@ -805,6 +822,7 @@ class Builder(BaseClause):
     """ Builder Class. """
     
     def __init__(self, db = None, onError = None):
+        super(Builder, self).__init__()
         self.tableContext = TableContext()
         self.db = db
         self.onError = onError
@@ -854,7 +872,7 @@ class Builder(BaseClause):
         if self.kind == 'with' and self.withNotComplete:
             self.columns = columns
             return self
-            
+        
         self.reset()
         self.kind = 'select'
         self.columns = columns
@@ -866,6 +884,10 @@ class Builder(BaseClause):
         if source.__class__.__name__ == 'Builder':
             if not source.kind == 'select':
                 raise ValueError('Builder passed not initialized for SELECT')
+        
+        # Expand source from str
+        if type(source) == str:
+            source = self.expandTable(source)
         
         # Set self.tableContext
         if type(source) == list and len(source) > 1:
@@ -880,6 +902,7 @@ class Builder(BaseClause):
     
     def join(self, join):
         self.joins.append(join)
+        self.childObjects.append(join)
         return self
     
     def having(self, having):
@@ -907,6 +930,16 @@ class Builder(BaseClause):
             cols = [i.strip() for i in columns.split(',')]
             columns = cols
         
+        #
+        # BUG??? len(self.tableContext) == 0 at this point
+        #
+        
+        #
+        # Joins need to be pre-processed
+        #
+        
+        print len(self.tableContext)
+        
         if len(self.tableContext) > 0:
             origin = self.tableContext.origin()
             if len(origin) > 1:
@@ -922,6 +955,11 @@ class Builder(BaseClause):
                 #   - Field is a quoted value
                 #
                 # Otherwise, alias it with the origin table and append it.
+                
+                print 'fieldIsAliased (%s): %s' % (str(i), self.fieldIsAliased(i))
+                print 'isSqlFunction (%s): %s' % (str(i), self.isSqlFunction(i))
+                print 'isValue (%s): %s' % (str(i), self.isValue(i))
+                
                 if (self.fieldIsAliased(i)
                 or self.isSqlFunction(i)
                 or self.isValue(i)):
@@ -936,6 +974,7 @@ class Builder(BaseClause):
         query = ['SELECT']
         escape = []
         
+        self.preProcessSql()
         columns = self.normalizeColumns(self.columns)
         query.extend([', '.join(columns)])
         
@@ -964,8 +1003,8 @@ class Builder(BaseClause):
         # JOIN
         if len(self.joins) > 0:
             for i in self.joins:
-                i.setTableContext(self.tableContext)
                 tmpquery, tmpescape = i.sql()
+                
                 query.append(tmpquery)
                 escape.extend(tmpescape)
         
