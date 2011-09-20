@@ -328,6 +328,42 @@ class BaseClause(object):
         
         return self.fieldQuote + escaped + self.fieldQuote
     
+    def splitFields(self, string):
+        """
+        Split fields from string. This has some pitfalls in MySQL ('"' is ignored),
+        however, it's much smarter than 'string'.split(). In the future, Support MySQL
+        will be improved.
+        """
+        
+        inFieldQuote = False
+        inValueQuote = False
+        start = 0
+        fields = []
+        length = len(string)
+    
+        for i in range(0, length):
+            if (string[i] == self.fieldQuote
+            and not inValueQuote):
+                if inFieldQuote:
+                    inFieldQuote = False
+                else:
+                    inFieldQuote = True
+            
+            if (string[i] == self.valueQuote
+            and not inFieldQuote):
+                if inValueQuote:
+                    inValueQuote = False
+                else:
+                    inValueQuote = True
+            
+            if (not inFieldQuote and not inValueQuote
+            and string[i] == ','):
+                fields.append(string[start:i].strip())
+                start = (i + 1)
+        
+        fields.append(string[start:length].strip())
+        return fields
+    
     def preProcessSql(self):
         """ Method which gets called before sql(), to update tableContext, etc. """
         for i in self.childObjects:
@@ -935,8 +971,7 @@ class Builder(BaseClause):
     
     def normalizeColumns(self, columns):
         if type(columns) == str:
-            cols = [i.strip() for i in columns.split(',')]
-            columns = cols
+            columns = self.splitFields(columns)
         
         #
         # BUG??? len(self.tableContext) == 0 at this point
