@@ -247,7 +247,36 @@ class BaseClause(object):
         of expressions.
         """
         
-        raise NotImplementedError('isSqlExpression Not Implemented')
+        basicAssignments = [
+            '=',
+            '<',
+            '>']
+        
+        if param[0:4].lower() == 'case':
+            return True
+        
+        inFieldQuote = False
+        inValueQuote = False
+        
+        for i in range(0, len(param)):
+            if param[i] == self.fieldQuote and not inValueQuote:
+                if inFieldQuote:
+                    inFieldQuote = False
+                else:
+                    inFieldQuote = True
+            
+            if param[i] == self.valueQuote and not inFieldQuote:
+                if inValueQuote:
+                    inValueQuote = False
+                else:
+                    inValueQuote = True
+        
+            if (param[i] in basicAssignments
+            and not inValueQuote
+            and not inFieldQuote):
+                return True
+        
+        return False
     
     def isQuotedValue(self, param):
         """ Return true if param is a quoted value. """
@@ -1005,7 +1034,8 @@ class Builder(BaseClause):
                 
                 if (self.fieldIsAliased(i)
                 or self.isSqlFunction(i)
-                or self.isValue(i)):
+                or self.isValue(i)
+                or self.isSqlExpression(i)):
                     cols.append(i)
                 else:
                     cols.append(self.fieldSeparator.join([origin, i]))
