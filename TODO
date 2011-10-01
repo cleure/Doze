@@ -1,4 +1,5 @@
 
+* Consider rewriting BaseClause class.
 * Use preProcessSql() method for setting tableContext on all objects, not just
     Joins.
 * Consider renaming JOIN variable names. JOIN_INNER eventually evaluates to
@@ -8,15 +9,8 @@
 * Cleanup BaseClause class.
 * Support Common Table Expression Write queries (DELETE, etc)
     http://www.postgresql.org/docs/9.1/static/queries-with.html
-* Implement expression recognition, such as:
-    SELECT 1 = 1; 
-    SELECT ('foo' = 'bar')
-    SELECT CASE WHEN field = 1 THEN 'foo' ELSE 'bar' END AS field
-    
-    * In order to do this, backend specific WHERE operators need to be accessible
-        from the generic backend somehow.
+* Implement more powerful sql expression detection
 * Recognize /field/ AS /alias/? SELECT a AS b, etc.
-* Split generic.py into multiple files, if it continues to grow at a rapid rate.
 * Update in-code documentation (is out of date).
 * Setup per-method unit-tests, to make sure everything works as expected.
 * Better in-code documentation
