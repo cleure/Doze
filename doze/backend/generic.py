@@ -239,18 +239,11 @@ class BaseClause(object):
         Determine if param is an SQL expression, such as "foo = 1", or
         "CASE WHEN...", etc.
         
-        Currently not implemented.
-        
-        In order to implement this, the comparison / assignment operators from
-        the Where class need to be move to this class. It might make sense, at
-        this point, to implement an engine which can create and parse these types
-        of expressions.
+        NOTE: The current imlpementation is very primitive, and probably won't catch
+        all cases.
         """
         
-        basicAssignments = [
-            '=',
-            '<',
-            '>']
+        basicAssignments = ['=', '<', '>']
         
         if param[0:4].lower() == 'case':
             return True
@@ -1002,16 +995,6 @@ class Builder(BaseClause):
         if type(columns) == str:
             columns = self.splitFields(columns)
         
-        #
-        # BUG??? len(self.tableContext) == 0 at this point
-        #
-        
-        #
-        # Joins need to be pre-processed
-        #
-        
-        #print len(self.tableContext)
-        
         if len(self.tableContext) > 0:
             origin = self.tableContext.origin()
             if len(origin) > 1:
@@ -1027,10 +1010,6 @@ class Builder(BaseClause):
                 #   - Field is a quoted value
                 #
                 # Otherwise, alias it with the origin table and append it.
-                
-                #print 'fieldIsAliased (%s): %s' % (str(i), self.fieldIsAliased(i))
-                #print 'isSqlFunction (%s): %s' % (str(i), self.isSqlFunction(i))
-                #print 'isValue (%s): %s' % (str(i), self.isValue(i))
                 
                 if (self.fieldIsAliased(i)
                 or self.isSqlFunction(i)
