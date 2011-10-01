@@ -89,6 +89,11 @@ def main():
     print builder.isSqlExpression('CASE WHEN id < 5 THEN \'a\' ELSE \'b\' END AS foo')
     print builder.isSqlExpression('"a" = "b"')
     
+    
+    print builder.select('a.id, a.name, b.foo, b.bar, something').from_('mytable a')\
+        .join(pgsql.Join('othertable b').where(pgsql.Where('refid').equals('id', kind=doze.FIELD)))\
+        .where(pgsql.Where('count').gt(10)).sql()
+    
     db.close()
     sys.exit(0)
 

@@ -140,6 +140,8 @@ class Builder(BaseClause):
     
     def where(self, where):
         self.where_.append(where)
+        if not where.__class__.__name__ == 'Builder':
+            self.childObjects.append(where)
         return self
     
     def join(self, join):
@@ -149,6 +151,8 @@ class Builder(BaseClause):
     
     def having(self, having):
         self.having_ = having
+        if not having.__class__.__name__ == 'Builder':
+            self.childObjects.append(having)
         return self
     
     def group(self, group):
@@ -242,8 +246,8 @@ class Builder(BaseClause):
             tmplist = []
             
             for i in self.where_:
-                if not i.__class__.__name__ == 'Builder':
-                    i.setTableContext(self.tableContext)
+                #if not i.__class__.__name__ == 'Builder':
+                #    i.setTableContext(self.tableContext)
                 
                 tmpquery, tmpescape = i.sql()
                 tmplist.append(tmpquery)

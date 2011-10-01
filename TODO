@@ -2,8 +2,6 @@
 * Consider reworking BaseClause class.
     * Add loop iterator helper, for those inValueQuote/inFieldQuote methods.
       Would also make fixing the MySQL double-quote recognition bug trivial.
-    * Use preProcessSql() method for setting tableContext on all objects, not just
-      Joins.
 * Consider renaming JOIN variable names. JOIN_INNER eventually evaluates to
     INNER JOIN, which seems retarded. Calling it INNER_JOIN would make more sense.
 * Cleanup Where class.
