@@ -18,8 +18,7 @@ def connection_is_open(conn):
     try:
         conn.poll()
         return True
-    except:
-        pass
+    except: pass
     return False
 
 def connection_is_ready(conn):
@@ -29,9 +28,28 @@ def connection_is_ready(conn):
     try:
         if conn.poll() == psycopg2.extensions.POLL_OK:
             return True
-    except:
-        pass
+    except: pass
     return False
+
+def connect(host=None,
+            user=None,
+            password=None,
+            database=None,
+            port=5432):
+    
+    """
+    Database connection wrapper, to make connection parameters between
+    different database backends consistent.
+    
+    FIXME: Handle sslmode parameter
+    """
+    
+    return psycopg2.connect(
+        host=host,
+        user=user,
+        password=password,
+        database=database,
+        port=port)
 
 class BaseClause(generic.BaseClause):
     """

@@ -4,6 +4,46 @@ import MySQLdb
 from doze import *
 import generic as generic
 
+def connection_is_open(conn):
+    """
+    Test if connection is open, and return True if it is.
+    
+    MySQL specific version, checks conn.open for connection status.
+    """
+    if conn.open == 1:
+        return True
+    return False
+
+def connection_is_ready(conn):
+    """
+    Dummy function that always returns True, as long as the connection
+    is still open. As far as I can tell, MySQLdb has no support for
+    asynchronous operations.
+    """
+    return connection_is_open(conn)
+
+def connect(host=None,
+            user=None,
+            password=None,
+            database=None,
+            port=3306):
+    
+    """
+    Database connection wrapper, to make connection parameters between
+    different database backends consistent.
+    
+    FIXME: Handle MySQL specific parameters:
+        http://mysql-python.sourceforge.net/MySQLdb.html#mysqldb
+    
+    """
+    
+    return MySQLdb.connect(
+        host=host,
+        user=user,
+        passwd=password,
+        db=database,
+        port=port)
+
 class BaseClause(generic.BaseClause):
     """
     MySQL specific implementation of the BaseClause class. Currently,
