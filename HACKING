@@ -14,20 +14,23 @@ doze.py
     TableContext - Independent class for setting and referencing table contexts,
         such as those used in JOINS.
 
-backend/generic.py
+backend/generic/base.py:
+    IterableField - Helper class, for iterating over fields to determine various
+        states, such as inside_quote, inside_parenthesis, etc
+    
     BaseClause - Base for classes in backend.generic.py such as Join, Where, and
         Builder. Includes commonly used generic methods for handling field
         aliases and detecting SQL functions.
 
+backend/generic/where.py:
     Where - Class for handling WHERE clauses, for generic database backends.
         Should suffice for most backends.
-    
+
+backend/generic/join.py:
     Join - Class for handling JOIN clauses, for generic database backends.
         Should suffice for most backends.
-    
-    QueryResult - Class for fetching results from a query. Database backends
-        will likely need to extend this to implement backend-specific code.
-    
+
+backend/generic/builder.py:    
     Builder - Class for interacting with database objects, for generic database
         backends. Will likely need to be extended by a backend-specific class
         in order to implement backend-specific behavior, such as checking if
@@ -35,6 +38,9 @@ backend/generic.py
         handling asynchronous database connections. Look at the pgsql backend,
         if you're interested in implementing a new backend, to get an idea of
         what will be involved.
+    
+    QueryResult - Class for fetching results from a query. Database backends
+        will likely need to extend this to implement backend-specific code.
 
 backend/pgsql.py
     PostgreSQL specific backend, using psycopg2.
