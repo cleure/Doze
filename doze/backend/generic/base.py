@@ -305,32 +305,16 @@ class BaseClause(object):
         all cases.
         """
         
-        basicAssignments = ['=', '<', '>']
-        
+        basicAssignments = '=<>'
         if param[0:4].lower() == 'case':
             return True
         
-        inFieldQuote = False
-        inValueQuote = False
-        
-        for i in range(0, len(param)):
-            if param[i] == self.fieldQuote and not inValueQuote:
-                if inFieldQuote:
-                    inFieldQuote = False
-                else:
-                    inFieldQuote = True
-            
-            if param[i] == self.valueQuote and not inFieldQuote:
-                if inValueQuote:
-                    inValueQuote = False
-                else:
-                    inValueQuote = True
-        
-            if (param[i] in basicAssignments
-            and not inValueQuote
-            and not inFieldQuote):
+        it = IterableField(param, self.searchQuotes)
+        for i in it.iterate():
+            if (not i['inside_quote']
+                and i['string'] in basicAssignments):
                 return True
-        
+            
         return False
     
     def isQuotedValue(self, param):
