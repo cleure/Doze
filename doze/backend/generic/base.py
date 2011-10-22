@@ -250,6 +250,9 @@ class BaseClause(object):
             CURRENT_TIMESTAMP
             LOCALTIMESTAMP
             CURRENT_USER
+        
+        FIXME: This method will return True, if parameter passed is a subquery.
+               This behavior needs to be fixed.
         """
     
         # Constants, which are usually aliases for functions in most RDBMS
