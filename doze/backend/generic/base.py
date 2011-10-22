@@ -14,15 +14,20 @@ class IterableField():
                 do_something()
             else:
                 do_something_else()
-    
-    TODO: Implement parenthesis support "()[]{}", etc
     """
 
-    def __init__(self, string, quotes='\'`'):
+    def __init__(self, string, quotes='\'`', parenthesis=False):
         self.string = string
+        
+        # Quotes
         self.quotes = quotes
         self.insideQuote = False
         self.literalQuote = None
+        
+        # Parenthesis
+        self.parenthesis = parenthesis
+        self.insideParenthesis = False
+        self.parenthesisDepth = 0
     
     def iterate(self):
         """ Iterate over string """
@@ -35,7 +40,9 @@ class IterableField():
                 'index': i,
                 'string': self.string[i],
                 'inside_quote': self.insideQuote,
-                'literal_quote': self.literalQuote}
+                'literal_quote': self.literalQuote,
+                'inside_parenthesis': self.insideParenthesis,
+                'parenthesis_depth': self.parenthesisDepth}
     
         # Iterate over string
         string_len = len(self.string)
@@ -51,13 +58,48 @@ class IterableField():
             if (i + 1) == string_len:
                 last = True
         
+            # Parenthesis
+            if self.parenthesis == True and not self.insideQuote:
+                # If switched to True, continue will be called at end of loop
+                shouldContinue = False
+            
+                if self.string[i] == '(':
+                    self.parenthesisDepth = self.parenthesisDepth + 1
+                elif self.string[i] == ')':
+                    # The object has to be yielded before variables are changed,
+                    # in order to maintain the rule that ')' counts for 
+                    # 'inside_parenthesis'
+                    yield make_object()
+                    
+                    # Set variables
+                    shouldContinue = True
+                    self.parenthesisDepth = self.parenthesisDepth - 1
+                
+                # Set insideParenthesis, parenthesisDepth
+                if self.parenthesisDepth > 0:
+                    self.insideParenthesis = True
+                else:
+                    self.insideParenthesis = False
+                    self.parenthesisDepth = 0
+                
+                # Continue?
+                if shouldContinue:
+                    continue
+        
             # Quotes
             if not self.insideQuote and self.string[i] in self.quotes:
                 self.insideQuote = True
                 self.literalQuote = self.string[i]
             elif self.insideQuote and self.string[i] == self.literalQuote:
+                # The object has to be yielded before variables are changed,
+                # in order to maintain the rule that "'everything in this'"
+                # counts for "inside_quote"
                 yield make_object()
+                
+                # Set variables
                 self.insideQuote = False
+                
+                # Continue
                 continue
             
             yield make_object()
