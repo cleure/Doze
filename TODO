@@ -1,9 +1,8 @@
 
 * BaseClause.isSqlFunction() will return True, if parameter passed is a subquery.
     This behavior needs to be fixed. Perhaps by a method "isSubQuery"?
-* Consider reworking BaseClause class.
-    * Add loop iterator helper, for those inValueQuote/inFieldQuote methods.
-      Would also make fixing the MySQL double-quote recognition bug trivial.
+* Ensure that MySQL double-quotes are now being recognized by the IterableField
+    class.
 * Consider renaming JOIN variable names. JOIN_INNER eventually evaluates to
     INNER JOIN, which seems retarded. Calling it INNER_JOIN would make more sense.
 * Cleanup Where class.
