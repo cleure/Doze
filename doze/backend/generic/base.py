@@ -8,7 +8,7 @@ class IterableField():
     in other places.
     
     Basic Usage:
-        it = IterableField('my "string"', check='\'"`')
+        it = IterableField('my "string"', quotes='\'"`')
         for i in it.iterate():
             if i['inside_quote']:
                 do_something()
@@ -18,9 +18,9 @@ class IterableField():
     TODO: Implement parenthesis support "()[]{}", etc
     """
 
-    def __init__(self, string, check='\'`'):
+    def __init__(self, string, quotes='\'`'):
         self.string = string
-        self.check = check
+        self.quotes = quotes
         self.insideQuote = False
         self.literalQuote = None
     
@@ -52,7 +52,7 @@ class IterableField():
                 last = True
         
             # Quotes
-            if not self.insideQuote and self.string[i] in self.check:
+            if not self.insideQuote and self.string[i] in self.quotes:
                 self.insideQuote = True
                 self.literalQuote = self.string[i]
             elif self.insideQuote and self.string[i] == self.literalQuote:
