@@ -1,6 +1,67 @@
 
 from doze import *
 
+class IterableField():
+    """
+    Iterable Field. This class is intended to be used for iterating over
+    field strings, to match various criteria, in order to simplify logic
+    in other places.
+    
+    Basic Usage:
+        it = IterableField('my "string"', check='\'"`')
+        for i in it.iterate():
+            if i['inside_quote']:
+                do_something()
+            else:
+                do_something_else()
+    
+    TODO: Implement parenthesis support "()[]{}", etc
+    """
+
+    def __init__(self, string, check='\'`'):
+        self.string = string
+        self.check = check
+        self.insideQuote = False
+        self.literalQuote = None
+    
+    def iterate(self):
+        """ Iterate over string """
+        
+        # Helper function, to build the object which will be yielded
+        def make_object():
+            return {
+                'first': first,
+                'last': last,
+                'index': i,
+                'string': self.string[i],
+                'inside_quote': self.insideQuote,
+                'literal_quote': self.literalQuote}
+    
+        # Iterate over string
+        string_len = len(self.string)
+        for i in range(0, string_len):
+        
+            # First loop?
+            first = False
+            if i == 0:
+                first = True
+            
+            # Last loop?
+            last = False
+            if (i + 1) == string_len:
+                last = True
+        
+            # Quotes
+            if not self.insideQuote and self.string[i] in self.check:
+                self.insideQuote = True
+                self.literalQuote = self.string[i]
+            elif self.insideQuote and self.string[i] == self.literalQuote:
+                yield make_object()
+                self.insideQuote = False
+                continue
+            
+            yield make_object()
+
 class BaseClause(object):
     """
     This is the Base class, which is extended by various other classes such as
@@ -19,6 +80,9 @@ class BaseClause(object):
     
     # Value quote
     valueQuote = '\''
+    
+    # Search quotes
+    searchQuotes = '\'`'
     
     # Characters which must be escaped / quoted to be understood literally by
     # the backend, for use in field, tables, etc.
@@ -117,31 +181,11 @@ class BaseClause(object):
         inValueQuote = False
         fieldLen = len(field)
         
-        for i in range(0, fieldLen):
-            if field[i] == self.fieldQuote and not inValueQuote:
-                if inFieldQuote:
-                    inFieldQuote = False
-                else:
-                    inFieldQuote = True
-                
-                # Continue from top
-                continue
-            
-            if field[i] == self.valueQuote and not inFieldQuote:
-                if inValueQuote:
-                    inValueQuote = False
-                else:
-                    inValueQuote = True
-                
-                # Continue from top
-                continue
-            
-            if (not inFieldQuote
-            and not inValueQuote
-            and field[i] == self.fieldSeparator
-            and (i + 1) < fieldLen):
-                # Not in any quotes, and character is "."
-                # Return True, no further processing is needed
+        it = IterableField(field, self.searchQuotes)
+        for i in it.iterate():
+            if (not i['inside_quote']
+                and i['string'] == self.fieldSeparator
+                and i['last'] == False):
                 return True
         
         return False

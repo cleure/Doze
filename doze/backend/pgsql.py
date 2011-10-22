@@ -81,6 +81,9 @@ class BaseClause(generic.BaseClause):
     
     # Value quote
     valueQuote = '\''
+    
+    # Search quotes
+    searchQuotes = '\'`'
 
 class Where(generic.Where, BaseClause): pass
 class Join(generic.Join, BaseClause): pass

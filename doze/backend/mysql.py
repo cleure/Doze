@@ -22,11 +22,12 @@ def connection_is_ready(conn):
     """
     return connection_is_open(conn)
 
-def connect(host=None,
-            user=None,
-            password=None,
-            database=None,
-            port=3306):
+def connect(host='',
+            user='',
+            password='',
+            database='',
+            port=3306,
+            unix_socket=''):
     
     """
     Database connection wrapper, to make connection parameters between
@@ -42,7 +43,8 @@ def connect(host=None,
         user=user,
         passwd=password,
         db=database,
-        port=port)
+        port=port,
+        unix_socket=unix_socket)
 
 class BaseClause(generic.BaseClause):
     """
@@ -65,6 +67,9 @@ class BaseClause(generic.BaseClause):
     
     # Value quote
     valueQuote = '\''
+    
+    # Search quotes
+    searchQuotes = '\'`"'
 
 class Where(generic.Where, BaseClause): pass
 class Join(generic.Join, BaseClause): pass
