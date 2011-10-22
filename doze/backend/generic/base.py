@@ -28,6 +28,7 @@ class IterableField():
         self.parenthesis = parenthesis
         self.insideParenthesis = False
         self.parenthesisDepth = 0
+        self.parenthesisClosed = True
     
     def iterate(self):
         """ Iterate over string """
@@ -42,7 +43,8 @@ class IterableField():
                 'inside_quote': self.insideQuote,
                 'literal_quote': self.literalQuote,
                 'inside_parenthesis': self.insideParenthesis,
-                'parenthesis_depth': self.parenthesisDepth}
+                'parenthesis_depth': self.parenthesisDepth,
+                'parenthesis_closed': self.parenthesisClosed}
     
         # Iterate over string
         string_len = len(self.string)
@@ -65,7 +67,11 @@ class IterableField():
             
                 if self.string[i] == '(':
                     self.parenthesisDepth = self.parenthesisDepth + 1
+                    self.parenthesisClosed = False
                 elif self.string[i] == ')':
+                    if self.parenthesisDepth == 1:
+                        self.parenthesisClosed = True
+                
                     # The object has to be yielded before variables are changed,
                     # in order to maintain the rule that ')' counts for 
                     # 'inside_parenthesis'
@@ -80,7 +86,6 @@ class IterableField():
                     self.insideParenthesis = True
                 else:
                     self.insideParenthesis = False
-                    self.parenthesisDepth = 0
                 
                 # Continue?
                 if shouldContinue:
@@ -264,43 +269,13 @@ class BaseClause(object):
         if '(' not in param or ')' not in param:
             return False
     
-        # These will be used to detect the open and close parentheses
-        openParen = False
-        closeParen = False
+        hasParen = False
+        it = IterableField(param, self.searchQuotes, parenthesis=True)
+        for i in it.iterate():
+            if i['parenthesis_depth'] > 0:
+                hasParen = True
     
-        # State, for if we're currently in a quoted or double-quoted string
-        inFieldQuote = False
-        inValueQuote = False
-    
-        # Fairly basic algorithm. It detects the state of quotes, and uses
-        # that information to determine whether or not openParen / closeParen
-        # should be changed when parentheses are detected.
-        for i in range(0, len(param)):
-            if param[i] == self.fieldQuote and not inValueQuote:
-                if inFieldQuote:
-                    inFieldQuote = False
-                else:
-                    inFieldQuote = True
-                continue
-            
-            if param[i] == self.valueQuote and not inFieldQuote:
-                if inValueQuote:
-                    inValueQuote = False
-                else:
-                    inValueQuote = True
-                continue
-    
-            if param[i] == '(' and not inFieldQuote and not inValueQuote:
-                openParen = True
-                continue
-        
-            if param[i] == ')' and not inFieldQuote and not inValueQuote:
-                if openParen == True:
-                    # Found both parentheses. Can safely break.
-                    closeParen = True
-                    break
-    
-        return openParen and closeParen
+        return hasParen and i['parenthesis_closed']
     
     def isSelectQuery(self, param):
         """
