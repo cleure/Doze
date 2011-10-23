@@ -324,7 +324,7 @@ class Where(BaseClause):
                         escape.extend(tmpescape)
                 
                     if not self.isSelectQuery(expr[2][i]):
-                        escape.extend(expr[2])
+                        escape.append(expr[2][i])
             else:
                 escape.extend(expr[2])
             
