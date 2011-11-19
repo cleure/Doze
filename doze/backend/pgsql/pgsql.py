@@ -1,7 +1,12 @@
 
-import psycopg2
-import random
+try:
+    import psycopg2
+    DRIVER_NAME = 'psycopg2'
+except:
+    import psycopg as psycopg2
+    DRIVER_NAME = 'psycopg'
 
+import random
 from doze import *
 import doze.backend.generic as generic
 

@@ -18,3 +18,5 @@ def get_tables(db = None, schema = None):
     
     if schema is None:
         schema = ['public']
+
+def get_indexes(db = None, schema = None, table = None): pass
