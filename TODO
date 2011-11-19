@@ -1,4 +1,3 @@
-* Fix bugs on Python 2.5
 * BaseClause.isSqlFunction() will return True, if parameter passed is a subquery.
     This behavior needs to be fixed. Perhaps by a method "isSubQuery"?
 * Ensure that MySQL double-quotes are now being recognized by the IterableField
