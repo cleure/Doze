@@ -28,7 +28,7 @@ def ExceptionWrapper(func):
         if hasattr(self, 'onError') and hasattr(self.onError, '__call__'):
             try:
                 return func(self, *args, **kargs)
-            except Exception as ex:
+            except Exception, ex:
                 return self.onError(ex)
         else:
             return func(self, *args)
