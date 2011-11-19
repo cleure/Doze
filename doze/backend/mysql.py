@@ -1,5 +1,10 @@
 
-import MySQLdb
+try:
+    import PyMySQL as MySQLdb
+    MYSQL_DRIVER = 'pymysql'
+except:
+    import MySQLdb
+    MYSQL_DRIVER = 'mysqldb'
 
 from doze import *
 import generic as generic
