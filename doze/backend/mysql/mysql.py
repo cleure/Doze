@@ -9,7 +9,7 @@ except:
     DRIVER = MySQLdb
 
 from doze import *
-import generic as generic
+import doze.backend.generic as generic
 
 def connection_is_open(conn):
     """

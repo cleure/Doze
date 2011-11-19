@@ -3,7 +3,7 @@ import psycopg2
 import random
 
 from doze import *
-import generic as generic
+import doze.backend.generic as generic
 
 def connection_is_open(conn):
     """
