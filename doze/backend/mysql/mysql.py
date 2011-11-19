@@ -3,7 +3,7 @@ try:
     import pymysql as MySQLdb
     DRIVER_NAME = 'pymysql'
     DRIVER = MySQLdb
-except:
+except ImportError:
     import MySQLdb
     DRIVER_NAME = 'mysqldb'
     DRIVER = MySQLdb

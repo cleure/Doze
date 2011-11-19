@@ -2,7 +2,7 @@
 try:
     import psycopg2
     DRIVER_NAME = 'psycopg2'
-except:
+except ImportError:
     import psycopg as psycopg2
     DRIVER_NAME = 'psycopg'
 
