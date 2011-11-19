@@ -31,7 +31,7 @@ def ExceptionWrapper(func):
             except Exception, ex:
                 return self.onError(ex)
         else:
-            return func(self, *args)
+            return func(self, *args, **kargs)
     return wrapper
 
 class TableContext(object):

@@ -41,6 +41,7 @@ class QueryResult(object):
         if self.cursorDescrInit == False:
             self.initCursorDescr()
 
+        self.rownumber = self.cursor.rownumber
         if self.fetch.__name__ == 'dict':
             return dict(zip(self.labels, res))
         return res

@@ -1,10 +1,12 @@
 
 try:
-    import PyMySQL as MySQLdb
-    MYSQL_DRIVER = 'pymysql'
+    import pymysql as MySQLdb
+    DRIVER_NAME = 'pymysql'
+    DRIVER = MySQLdb
 except:
     import MySQLdb
-    MYSQL_DRIVER = 'mysqldb'
+    DRIVER_NAME = 'mysqldb'
+    DRIVER = MySQLdb
 
 from doze import *
 import generic as generic
