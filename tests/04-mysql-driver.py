@@ -1,7 +1,7 @@
 
 """
 * 
-* Test showing basic usage of Doze on PostgreSQL.
+* Test showing basic usage of unbuffered cursors with MySQL.
 * 
 """
 
@@ -22,9 +22,8 @@ def connect():
 def main():
     db = connect()
     builder = mysql.Builder(db=db)
-    builder.select('id, name').from_('timezones')
+    builder.select('id, name').from_('timezones t')
     res = builder.asObject(server=True)
-    print res.cursor
     
     while True:
         row = res.next()
@@ -32,6 +31,7 @@ def main():
             break
         print row
     
+    print ('Using driver: ' + mysql.DRIVER_NAME)
     db.close()
     sys.exit(0)
 

@@ -1,7 +1,7 @@
 
 """
 * 
-* Test showing basic usage of Doze on PostgreSQL.
+* Test showing basic usage of Doze on PostgreSQL and MySQL.
 * 
 """
 
