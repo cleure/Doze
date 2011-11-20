@@ -12,6 +12,9 @@
 # Get Indexes
 # See: http://archives.postgresql.org/pgsql-php/2005-09/msg00011.php
 
+# Get Columns:
+# SELECT * FROM information_schema.columns WHERE table_name = '%s'
+
 def get_tables(db = None, schema = None):
     if db is None:
         return None
