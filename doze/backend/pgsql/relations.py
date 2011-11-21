@@ -13,7 +13,7 @@ import doze.backend.pgsql.relations as relations
 
 database_list = relations.databases(db)
 for i in database_list:
-    database = relations.Database.get(db, i)
+    database = relations.Database.get(db, i)    
 
 """
 
@@ -72,6 +72,83 @@ def tables(conn = None, schema = 'public'):
     cursor.close()
     
     return rows
+
+def columns(conn, table, schema = 'public'):
+    """
+    Get column definition for table. Must provide at least a database
+    connection and a table. Schema defaults to public.
+    
+    Query code has been borrowed from EAR::MDB2, with many modifications.
+    
+    Returns a list of dictionaries.
+    """
+    
+    # This is a bit of an unholy mess
+    query = ("""
+        SELECT
+        tb.tablename AS table,
+        tb.schemaname AS schema,
+        a.attname AS name,
+        t.typname AS internaltype,
+        CASE
+            WHEN SUBSTRING(TRIM(t.typname) FROM 1 FOR 3) = 'int' THEN 'integer'
+            WHEN SUBSTRING(TRIM(t.typname) FROM 1 FOR 4) = 'float' THEN 'float'
+            WHEN t.typname = 'varchar' THEN 'char'
+            WHEN t.typname = 'text' THEN 'char'
+            WHEN t.typname = 'bytea' THEN 'binary'
+            ELSE t.typname
+        END AS externaltype,
+        CASE a.attlen
+            WHEN -1 THEN
+                CASE t.typname
+                    WHEN 'numeric' THEN (a.atttypmod / 65536)
+                    WHEN 'decimal' THEN (a.atttypmod / 65536)
+                    WHEN 'money'   THEN (a.atttypmod / 65536)
+                    ELSE CASE a.atttypmod
+                        WHEN -1 THEN NULL
+                        ELSE a.atttypmod - 4
+                        END
+                    END
+                ELSE a.attlen
+                END AS length,
+                CASE t.typname
+                    WHEN 'numeric' THEN (a.atttypmod %% 65536) - 4
+                    WHEN 'decimal' THEN (a.atttypmod %% 65536) - 4
+                    WHEN 'money'   THEN (a.atttypmod %% 65536) - 4
+                    ELSE 0
+                END AS scale,
+        a.attnotnull AS not_null,
+        a.atttypmod AS type_mod,
+        a.atthasdef AS has_default,
+        (SELECT substring(pg_get_expr(d.adbin, d.adrelid) for 128)
+            FROM pg_attrdef d
+            WHERE d.adrelid = a.attrelid
+                AND d.adnum = a.attnum
+                AND a.atthasdef
+        ) as default
+        FROM pg_catalog.pg_attribute a
+            RIGHT JOIN pg_catalog.pg_class c ON (c.oid = a.attrelid)
+            RIGHT JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid)
+            JOIN pg_catalog.pg_tables tb ON (tb.schemaname = %s AND tb.tablename = %s)
+        WHERE c.relname = %s
+            AND NOT a.attisdropped
+            AND a.attnum > 0
+        ORDER BY a.attnum;""")
+    
+    cursor = conn.cursor()
+    cursor.execute(query, [schema, table, table])
+    
+    # Get column map
+    columns = [i.name for i in cursor.description]
+    
+    # Build result to return
+    rows = []
+    for i in cursor.fetchall():
+        rows.append(dict(zip(columns, i)))
+    
+    cursor.close()
+    return rows
+    
 
 class ObjectList(object):
     """
@@ -136,8 +213,61 @@ class Relation(object):
         # Alias for __unicode__
         return self.__unicode__()
 
+class Column(Relation):
+    """ Column object """
+    
+    @staticmethod
+    def get(
+            conn,
+            table,
+            schema,
+            name,
+            not_null = None,
+            has_default = None,
+            scale = None,
+            default = None,
+            externaltype = None,
+            internaltype = None,
+            type_mod = None,
+            length = None):
+        
+        #
+        # TODO: This could be much cleaner, if using **kwargs along
+        # with a list of valid parameters
+        #
+        col = Column()
+        col.conn = conn
+        col.table = table
+        col.schema = schema
+        col.name = name
+        col.not_null = not_null
+        col.has_default = has_default
+        col.scale = scale
+        col.default = default
+        col.type = externaltype
+        col.internaltype = internaltype
+        col.type_mod = type_mod
+        col.length = length
+        
+        return col
+
 class Table(Relation):
     """ Table object """
+    
+    def __init__(self):
+        self.__dict__['__attributes'] = {
+            'indexes': 'load_indexes',
+            'columns': 'load_columns',
+            'constraints': 'load_constraints',
+            'triggers': 'load_triggers',
+            'rules': 'load_rules'}
+    
+    def load_columns(self):
+        self.columns = ObjectList()
+        for i in columns(self.conn, self.name, self.schema):
+            col = Column.get(self.conn, **i)
+            self.columns.setattr(i['name'], col)
+        return self.columns
     
     @staticmethod
     def get(conn, schema, name, owner):
@@ -178,7 +308,6 @@ class Database(Relation):
         dbdef.name = database
         return dbdef
 
-class Column(object): pass
 class User(object): pass
 class Index(object): pass
 class Sequence(object): pass

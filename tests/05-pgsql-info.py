@@ -22,7 +22,9 @@ def main():
     db = connect()
     dbdef = pgsql_relations.Database.get(db)
     print dbdef
-    print dbdef.tables.subsites
+
+    for i in dbdef.tables.advertisements.columns:
+        print (i[0], i[1].internaltype, i[1].length)
     
     db.close()
     sys.exit(0)
