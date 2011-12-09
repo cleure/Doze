@@ -23,8 +23,8 @@ def main():
     dbdef = pgsql_relations.Database.get(db)
     print dbdef
 
-    for i in dbdef.tables.advertisements.columns:
-        print (i[0], i[1].internaltype, i[1].length)
+    for name, obj in dbdef.tables.advertisements.columns:
+        print (str(obj), obj.internaltype, obj.length)
     
     db.close()
     sys.exit(0)
