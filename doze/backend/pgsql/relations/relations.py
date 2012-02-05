@@ -314,13 +314,7 @@ class Database(
         dbdef.search_path = search_path
         dbdef.conn = conn
         
-        # Get database
-        cursor = conn.cursor()
-        cursor.execute('SELECT CURRENT_DATABASE()')
-        database = str(cursor.fetchone()[0])
-        cursor.close()
-        
-        dbdef.name = database
+        dbdef.name = current_database(conn)
         return dbdef
 
 class User(object): pass

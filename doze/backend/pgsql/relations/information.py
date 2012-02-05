@@ -8,7 +8,17 @@
 import sys
 import doze.backend.pgsql as pgsql
 
-def databases(conn=None):
+def current_database(conn):
+    """ Get current database. """
+
+    cursor = conn.cursor()
+    cursor.execute('SELECT CURRENT_DATABASE()')
+    database = str(cursor.fetchone()[0])
+    cursor.close()
+    
+    return database
+
+def databases(conn):
     """ Get list of databases, using conn as the connection. """
 
     cursor = conn.cursor()
@@ -18,7 +28,7 @@ def databases(conn=None):
     
     return rows
 
-def tables(conn=None, schema='public'):
+def tables(conn, schema='public'):
     """
     Get list of tables on current database.
     
