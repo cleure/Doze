@@ -43,6 +43,15 @@ def main():
     for i in dbdef.sequences:
         print i
     
+    # Views
+    for i in dbdef.views:
+        print i
+    
+    # Column lists work on views :)
+    res = pgsql_relations.columns(db, 'dpages_view')
+    for i in res:
+        print (i['name'], i['internaltype'])
+    
     db.close()
     sys.exit(0)
 

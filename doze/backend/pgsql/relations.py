@@ -106,7 +106,50 @@ def sequences(conn, schema='public'):
     cursor.close()
     return rows
 
-def columns(conn, table, schema = 'public'):
+def views(conn, schema='public'):
+    """ Get list of views """
+    
+    escape = []
+    query = """
+        SELECT
+            s.relname AS name,
+            ns.nspname AS schema,
+            a.rolname AS owner
+        FROM
+                pg_catalog.pg_class s,
+                pg_catalog.pg_namespace ns,
+                pg_catalog.pg_roles a
+        WHERE
+                ns.oid = s.relnamespace
+                AND a.oid = s.relowner
+                AND s.relkind = 'v'"""
+        
+    if type(schema) == str:
+        # Normal case, schema is a string
+        query += " AND ns.nspname = %s"
+        escape.append(schema)
+    elif type(schema) == list or type(schema) == tuple:
+        # This function also supports lists/tuples for schema
+        _in = ','.join(['%s' for i in range(0, len(schema))])
+        query += " AND ns.nspname IN (%s)" % (_in)
+        escape.extend(schema)
+    
+    # Execute query
+    cursor = conn.cursor()
+    cursor.execute(query, escape)
+    
+    # Get column map
+    columns = [i.name for i in cursor.description]
+    
+    # Build result to return
+    rows = []
+    for i in cursor.fetchall():
+        rows.append(dict(zip(columns, i)))
+    
+    cursor.close()
+    return rows
+
+def columns(conn, table, schema='public'):
     """
     Get column definition for table. Must provide at least a database
     connection and a table. Schema defaults to public.
@@ -162,7 +205,7 @@ def columns(conn, table, schema = 'public'):
         FROM pg_catalog.pg_attribute a
             RIGHT JOIN pg_catalog.pg_class c ON (c.oid = a.attrelid)
             RIGHT JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid)
-            JOIN pg_catalog.pg_tables tb ON (tb.schemaname = %s AND tb.tablename = %s)
+            LEFT JOIN pg_catalog.pg_tables tb ON (tb.schemaname = %s AND tb.tablename = %s)
         WHERE c.relname = %s
             AND NOT a.attisdropped
             AND a.attnum > 0
@@ -436,13 +479,39 @@ class Sequence(Relation):
             seq[k] = v
         return seq
 
+class View(Relation):
+    """ View object """
+
+    factory_params = [
+            'name',
+            'schema',
+            'owner']
+    
+    @staticmethod
+    def factory(conn, **kwargs):
+        view = View()
+        view.conn = conn
+        
+        for k, v in kwargs.items():
+            if k not in View.factory_params:
+                raise TypeError(Relation.bad_argument_fmt
+                    % (sys._getframe().f_code.co_name, k))
+            view[k] = v
+        return view
+
 class Database(Relation):
     """ Database object """
+    
+    #
+    # FIXME: Support schema search paths
+    #
     
     def __init__(self):
         self.__dict__['__attributes'] = {
             'tables': 'load_tables',
-            'sequences': 'load_sequences'}
+            'sequences': 'load_sequences',
+            'schemas': 'load_schemas',
+            'views': 'load_views'}
 
     def load_tables(self):
         self.tables = ObjectList()
@@ -455,12 +524,22 @@ class Database(Relation):
 
     def load_sequences(self):
         self.sequences = ObjectList()
-        seqs = sequences(self.conn)
         
-        for i in seqs:
+        for i in sequences(self.conn):
             s = Sequence.factory(self.conn, **i)
             self.sequences.setattr(i['name'], s)
         return self.sequences
+
+    def load_schemas(self):
+        raise NotImplementedError('load_schemas() not implemented')
+    
+    def load_views(self):
+        self.views = ObjectList()
+        
+        for i in views(self.conn):
+            v = View.factory(self.conn, **i)
+            self.views.setattr(i['name'], v)
+        return self.views
 
     @staticmethod
     def get(conn):
@@ -481,4 +560,3 @@ class User(object): pass
 class UniqueConstraint(object): pass
 class CheckConstraint(object): pass
 class ForeignKeyConstraint(object): pass
-class View(object): pass
