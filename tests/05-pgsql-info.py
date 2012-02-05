@@ -54,15 +54,8 @@ def main():
     
     """
     
-    for i in dbdef.tables:
+    for i in dbdef.views.dpages_view.columns:
         print i
-    
-    dbdef.set_search_path('information_schema')
-    for i in dbdef.tables:
-        print i
-    
-    for name, obj in dbdef.schemas.pg_catalog.views:
-        print name
     
     db.close()
     sys.exit(0)
