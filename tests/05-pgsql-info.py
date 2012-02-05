@@ -33,7 +33,7 @@ def main():
     
     # Columns
     for name, obj in dbdef.tables.advertisements.columns:
-        print (str(obj), obj.internaltype, obj.length)
+        print (str(obj), obj.type, obj.internaltype, obj.length)
     
     # Indexes
     for name, obj in dbdef.tables.clubhouse_members.indexes:

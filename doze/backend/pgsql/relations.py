@@ -15,7 +15,7 @@ PG_CLASS_INDEX = 'i'
 PG_CLASS_SEQUENCE = 'S'
 PG_CLASS_SPECIAL = 's'
 
-def databases(conn = None):
+def databases(conn=None):
     """ Get list of databases, using conn as the connection. """
 
     cursor = conn.cursor()
@@ -25,7 +25,7 @@ def databases(conn = None):
     
     return rows
 
-def tables(conn = None, schema = 'public'):
+def tables(conn=None, schema='public'):
     """
     Get list of tables on current database.
     
@@ -65,6 +65,7 @@ def tables(conn = None, schema = 'public'):
 def sequences(conn, schema='public'):
     """ Get list of sequences """
     
+    escape = []
     query = """
         SELECT
             s.relname AS name,
@@ -77,11 +78,22 @@ def sequences(conn, schema='public'):
         WHERE
             ns.oid = s.relnamespace
             AND a.oid = s.relowner
-            AND s.relkind = 'S'
-            AND ns.nspname = %s"""
+            AND s.relkind = 'S'"""
     
+    
+    if type(schema) == str:
+        # Normal case, schema is a string
+        query += " AND ns.nspname = %s"
+        escape.append(schema)
+    elif type(schema) == list or type(schema) == tuple:
+        # This function also supports lists/tuples for schema
+        _in = ','.join(['%s' for i in range(0, len(schema))])
+        query += " AND ns.nspname IN (%s)" % (_in)
+        escape.extend(schema)
+    
+    # Execute query
     cursor = conn.cursor()
-    cursor.execute(query, [schema])
+    cursor.execute(query, escape)
     
     # Get column map
     columns = [i.name for i in cursor.description]
@@ -350,6 +362,10 @@ class Column(Relation):
                 raise TypeError(Relation.bad_argument_fmt
                     % (sys._getframe().f_code.co_name, k))
             col[k] = v
+        
+        if 'externaltype' in kwargs:
+            col['type'] = kwargs['externaltype']
+        
         return col
 
 class Table(Relation):
@@ -460,6 +476,7 @@ class Database(Relation):
         dbdef.name = database
         return dbdef
 
+class Schema(object): pass
 class User(object): pass
 class UniqueConstraint(object): pass
 class CheckConstraint(object): pass
