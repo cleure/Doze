@@ -5,6 +5,7 @@
 *
 """
 
+import sys
 import doze.backend.pgsql as pgsql
 
 # Relation Types, as per relkind on pg_catalog.pg_class
@@ -61,6 +62,37 @@ def tables(conn = None, schema = 'public'):
     
     return rows
 
+def sequences(conn, schema='public'):
+    """ Get list of sequences """
+    
+    query = """
+        SELECT
+            s.relname AS name,
+            ns.nspname AS schema,
+            a.rolname AS owner
+        FROM
+            pg_catalog.pg_class s,
+            pg_catalog.pg_namespace ns,
+            pg_catalog.pg_roles a
+        WHERE
+            ns.oid = s.relnamespace
+            AND a.oid = s.relowner
+            AND s.relkind = 'S'
+            AND ns.nspname = %s"""
+    
+    cursor = conn.cursor()
+    cursor.execute(query, [schema])
+    
+    # Get column map
+    columns = [i.name for i in cursor.description]
+    
+    # Build result to return
+    rows = []
+    for i in cursor.fetchall():
+        rows.append(dict(zip(columns, i)))
+    
+    cursor.close()
+    return rows
 
 def columns(conn, table, schema = 'public'):
     """
@@ -159,15 +191,18 @@ def indexes(conn, table, schema = 'public'):
             i.relname AS name,
             ix.indisprimary AS is_primary,
             ix.indisunique AS is_unique,
-            a.attname AS column
+            a.attname AS column,
+            r.rolname AS owner
         FROM
             pg_catalog.pg_class t,
             pg_catalog.pg_class i,
             pg_catalog.pg_index ix,
             pg_catalog.pg_attribute a,
-            pg_catalog.pg_namespace ns
+            pg_catalog.pg_namespace ns,
+            pg_catalog.pg_roles r
         WHERE
             t.oid = ix.indrelid
+            AND r.oid = i.relowner
             AND i.oid = ix.indexrelid
             AND a.attrelid = t.oid
             AND a.attnum = ANY(ix.indkey)
@@ -230,6 +265,9 @@ class ObjectList(object):
 
 class Relation(object):
     """ Base class for all Relations. """
+    
+    # Used when a bad argument is passed to factory()
+    bad_argument_fmt = "%s() got an unexpected keyword argument '%s'"
 
     def __init__(self):
         # You can define certain instance attributes that will be
@@ -247,6 +285,9 @@ class Relation(object):
         raise AttributeError('"%s" has no attribute named "%s"'
             % (self.__class__.__name__, name))
     
+    def __setitem__(self, key, value):
+        self.__dict__[key] = value
+    
     def __unicode__(self):
         # As unicode
         return u'%s' % (self.name)
@@ -258,66 +299,57 @@ class Relation(object):
 class Index(Relation):
     """ Index object """
 
+    factory_params = [
+            'table',
+            'schema',
+            'name',
+            'indexrelid',
+            'indrelid',
+            'is_primary',
+            'is_unique',
+            'owner',
+            'columns']
+
+    #TypeError: foo() takes no arguments (1 given)
+
     @staticmethod
-    def factory(conn,
-            table=None,
-            schema=None,
-            name=None,
-            indexrelid=None,
-            indrelid=None,
-            is_primary=None,
-            is_unique=None,
-            columns=None):
-        
+    def factory(conn, **kwargs):
         ind = Index()
         ind.conn = conn
-        ind.table = table
-        ind.schema = schema
-        ind.name = name
-        ind.indexrelid = indexrelid
-        ind.indrelid = indrelid
-        ind.is_primary = is_primary
-        ind.is_unique = is_unique
-        ind.columns = columns
         
+        for k, v in kwargs.items():
+            if k not in Index.factory_params:
+                raise TypeError(Relation.bad_argument_fmt
+                    % (sys._getframe().f_code.co_name, k))
+            ind[k] = v
         return ind
 
 class Column(Relation):
     """ Column object """
     
+    factory_params = [
+            'table',
+            'schema',
+            'name',
+            'not_null',
+            'has_default',
+            'scale',
+            'default',
+            'externaltype',
+            'internaltype',
+            'type_mod',
+            'length']
+    
     @staticmethod
-    def factory(
-            conn,
-            table,
-            schema,
-            name,
-            not_null = None,
-            has_default = None,
-            scale = None,
-            default = None,
-            externaltype = None,
-            internaltype = None,
-            type_mod = None,
-            length = None):
-        
-        #
-        # TODO: This could be much cleaner, if using **kwargs along
-        # with a list of valid parameters
-        #
+    def factory(conn, **kwargs):
         col = Column()
         col.conn = conn
-        col.table = table
-        col.schema = schema
-        col.name = name
-        col.not_null = not_null
-        col.has_default = has_default
-        col.scale = scale
-        col.default = default
-        col.type = externaltype
-        col.internaltype = internaltype
-        col.type_mod = type_mod
-        col.length = length
         
+        for k, v in kwargs.items():
+            if k not in Column.factory_params:
+                raise TypeError(Relation.bad_argument_fmt
+                    % (sys._getframe().f_code.co_name, k))
+            col[k] = v
         return col
 
 class Table(Relation):
@@ -360,7 +392,7 @@ class Table(Relation):
         return self.columns
     
     @staticmethod
-    def get(conn, schema, name, owner):
+    def factory(conn, schema, name, owner):
         tbl = Table()
         tbl.conn = conn
         tbl.schema = schema
@@ -368,21 +400,51 @@ class Table(Relation):
         tbl.owner = owner
         return tbl
 
+class Sequence(Relation):
+    """ Sequence object """
+
+    factory_params = [
+        'name',
+        'schema',
+        'owner']
+
+    @staticmethod
+    def factory(conn, **kwargs):
+        seq = Sequence()
+        seq.conn = conn
+        
+        for k, v in kwargs.items():
+            if k not in Sequence.factory_params:
+                raise TypeError(Relation.bad_argument_fmt
+                    % (sys._getframe().f_code.co_name, k))
+            seq[k] = v
+        return seq
+
 class Database(Relation):
     """ Database object """
     
     def __init__(self):
         self.__dict__['__attributes'] = {
-            'tables': 'load_tables'}
+            'tables': 'load_tables',
+            'sequences': 'load_sequences'}
 
     def load_tables(self):
         self.tables = ObjectList()
         tbl_list = tables(self.conn)
         for (schema, name, owner) in tbl_list:
-            tbl = Table.get(self.conn, schema, name, owner)
+            tbl = Table.factory(self.conn, schema, name, owner)
             self.tables.setattr(name, tbl)
         
         return self.tables
+
+    def load_sequences(self):
+        self.sequences = ObjectList()
+        seqs = sequences(self.conn)
+        
+        for i in seqs:
+            s = Sequence.factory(self.conn, **i)
+            self.sequences.setattr(i['name'], s)
+        return self.sequences
 
     @staticmethod
     def get(conn):
@@ -399,7 +461,6 @@ class Database(Relation):
         return dbdef
 
 class User(object): pass
-class Sequence(object): pass
 class UniqueConstraint(object): pass
 class CheckConstraint(object): pass
 class ForeignKeyConstraint(object): pass

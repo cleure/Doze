@@ -35,8 +35,13 @@ def main():
     for name, obj in dbdef.tables.advertisements.columns:
         print (str(obj), obj.internaltype, obj.length)
     
+    # Indexes
     for name, obj in dbdef.tables.clubhouse_members.indexes:
         print (str(obj), obj.columns, obj.is_unique, obj.is_primary)
+    
+    # Sequences
+    for i in dbdef.sequences:
+        print i
     
     db.close()
     sys.exit(0)
