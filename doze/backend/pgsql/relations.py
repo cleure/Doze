@@ -8,6 +8,13 @@
 import sys
 import doze.backend.pgsql as pgsql
 
+"""
+
+TODO: Split into multiple files
+TODO: MySQL support
+
+"""
+
 # Relation Types, as per relkind on pg_catalog.pg_class
 PG_CLASS_TABLE = 'r'
 PG_CLASS_VIEW = 'v'
@@ -114,7 +121,8 @@ def views(conn, schema='public'):
         SELECT
             s.relname AS name,
             ns.nspname AS schema,
-            a.rolname AS owner
+            a.rolname AS owner,
+            pg_catalog.pg_get_viewdef(s.oid, true) AS definition
         FROM
                 pg_catalog.pg_class s,
                 pg_catalog.pg_namespace ns,
@@ -280,7 +288,32 @@ def indexes(conn, table, schema = 'public'):
     
     cursor.close()
     return rows
+
+def schemas(conn):
+    """
+    Get list of schemas on current connection. Note: if you connected
+    as a user who isn't a super user, the owner of the schema may be
+    listed incorrectly. I'm not sure if this is a PostgreSQL bug, or
+    feature, but I've reproduced the same result on multiple systems.
+    """
+
+    query = """ SELECT n.nspname AS name, r.rolname AS owner
+                FROM pg_catalog.pg_namespace n, pg_catalog.pg_roles r
+                WHERE r.oid = n.nspowner """
     
+    cursor = conn.cursor()
+    cursor.execute(query)
+    
+    # Get column map
+    columns = [i.name for i in cursor.description]
+    
+    # Build result to return
+    rows = []
+    for i in cursor.fetchall():
+        rows.append(dict(zip(columns, i)))
+    
+    cursor.close()
+    return rows
 
 class ObjectList(object):
     """
@@ -315,6 +348,14 @@ class ObjectList(object):
                 self.__dict__['keys'][i],
                 self.__dict__['objects'][i])
     
+    def attributes(self):
+        """ Returns iterator of accessible attributes """
+    
+        for i in self.__dict__['keys']:
+            if len(i) >= 2 and i[0:2] == '__':
+                continue
+            yield i
+    
     def setattr(self, name, value):
         self.__setattr__(name, value)
 
@@ -339,9 +380,32 @@ class Relation(object):
     
         raise AttributeError('"%s" has no attribute named "%s"'
             % (self.__class__.__name__, name))
+
+    def __getitem__(self, key, value):
+        if key in self.__dict__:
+            return self.__dict__[key]
+        raise KeyError("'%s'" % (key))
     
     def __setitem__(self, key, value):
         self.__dict__[key] = value
+    
+    def __iter__(self):
+        for k, v in self.__dict__.items():
+            if len(k) >= 2 and k[0:2] == '__':
+                continue
+            yield (k, v)
+    
+    def attributes(self):
+        """ Returns iterator of accessible attributes """
+        
+        for k in self.__dict__.keys():
+            if len(k) >= 2 and k[0:2] == '__':
+                continue
+            yield k
+        
+        if '__attributes' in self.__dict__:
+            for k in self.__dict__['__attributes'].keys():
+                yield k
     
     def __unicode__(self):
         # As unicode
@@ -365,10 +429,10 @@ class Index(Relation):
             'owner',
             'columns']
 
-    #TypeError: foo() takes no arguments (1 given)
-
     @staticmethod
     def factory(conn, **kwargs):
+        """ Factory method """
+    
         ind = Index()
         ind.conn = conn
         
@@ -397,6 +461,8 @@ class Column(Relation):
     
     @staticmethod
     def factory(conn, **kwargs):
+        """ Factory method """
+    
         col = Column()
         col.conn = conn
         
@@ -423,6 +489,8 @@ class Table(Relation):
             'rules': 'load_rules'}
     
     def load_indexes(self):
+        """ Auto load indexes """
+    
         self.indexes = ObjectList()
         
         # Data must be grouped properly
@@ -444,6 +512,8 @@ class Table(Relation):
         return self.indexes
     
     def load_columns(self):
+        """ Auto load columns """
+        
         self.columns = ObjectList()
         for i in columns(self.conn, self.name, self.schema):
             col = Column.factory(self.conn, **i)
@@ -452,6 +522,8 @@ class Table(Relation):
     
     @staticmethod
     def factory(conn, schema, name, owner):
+        """ Factory method """
+    
         tbl = Table()
         tbl.conn = conn
         tbl.schema = schema
@@ -469,14 +541,16 @@ class Sequence(Relation):
 
     @staticmethod
     def factory(conn, **kwargs):
+        """ Factory method """
+    
         seq = Sequence()
         seq.conn = conn
-        
         for k, v in kwargs.items():
             if k not in Sequence.factory_params:
                 raise TypeError(Relation.bad_argument_fmt
                     % (sys._getframe().f_code.co_name, k))
             seq[k] = v
+        
         return seq
 
 class View(Relation):
@@ -485,10 +559,17 @@ class View(Relation):
     factory_params = [
             'name',
             'schema',
-            'owner']
+            'owner',
+            'definition']
+    
+    def __init__(self):
+        self.__dict__['__attributes'] = {
+            'columns': 'load_columns'}
     
     @staticmethod
     def factory(conn, **kwargs):
+        """ Factory method """
+    
         view = View()
         view.conn = conn
         
@@ -498,13 +579,95 @@ class View(Relation):
                     % (sys._getframe().f_code.co_name, k))
             view[k] = v
         return view
-
-class Database(Relation):
-    """ Database object """
     
-    #
-    # FIXME: Support schema search paths
-    #
+    def load_columns(self):
+        """ Auto load columns """
+    
+        self.columns = ObjectList()
+        for i in columns(self.conn, self.name, self.schema):
+            i['table'] = self.name
+            col = Column.factory(self.conn, **i)
+            self.columns.setattr(i['name'], col)
+        return self.columns
+
+class LazyloadTables(object):
+    """ Lazyload Tables Class """
+    
+    def load_tables(self):
+        self.tables = ObjectList()
+        tbl_list = tables(self.conn, self.search_path)
+        for (schema, name, owner) in tbl_list:
+            tbl = Table.factory(self.conn, schema, name, owner)
+            self.tables.setattr(name, tbl)
+        
+        return self.tables
+
+class LazyloadSequences(object):
+    """ Lazyload Sequences Class """
+
+    def load_sequences(self):
+        self.sequences = ObjectList()
+        for i in sequences(self.conn, self.search_path):
+            s = Sequence.factory(self.conn, **i)
+            self.sequences.setattr(i['name'], s)
+        
+        return self.sequences
+
+class LazyloadViews(object):
+    """ Lazyload Views Class """
+    
+    def load_views(self):
+        """ Auto load views """
+    
+        self.views = ObjectList()
+        for i in views(self.conn, self.search_path):
+            v = View.factory(self.conn, **i)
+            self.views.setattr(i['name'], v)
+        
+        return self.views
+
+class Schema(
+        Relation,
+        LazyloadTables,
+        LazyloadSequences,
+        LazyloadViews):
+    
+    """ Schema object """
+
+    factory_params = [
+            'name',
+            'owner']
+    
+    def __init__(self):
+        self.__dict__['__attributes'] = {
+            'tables': 'load_tables',
+            'sequences': 'load_sequences',
+            'views': 'load_views'}
+    
+    @staticmethod
+    def factory(conn, **kwargs):
+        """ Factory method """
+    
+        schem = Schema()
+        schem.conn = conn
+        
+        for k, v in kwargs.items():
+            if k not in Schema.factory_params:
+                raise TypeError(Relation.bad_argument_fmt
+                    % (sys._getframe().f_code.co_name, k))
+            schem[k] = v
+        
+        # Set correct search path
+        schem.search_path = kwargs['name']
+        return schem
+
+class Database(
+        Relation,
+        LazyloadTables,
+        LazyloadSequences,
+        LazyloadViews):
+        
+    """ Database object """
     
     def __init__(self):
         self.__dict__['__attributes'] = {
@@ -512,38 +675,42 @@ class Database(Relation):
             'sequences': 'load_sequences',
             'schemas': 'load_schemas',
             'views': 'load_views'}
+        self.search_path = ['public']
 
-    def load_tables(self):
-        self.tables = ObjectList()
-        tbl_list = tables(self.conn)
-        for (schema, name, owner) in tbl_list:
-            tbl = Table.factory(self.conn, schema, name, owner)
-            self.tables.setattr(name, tbl)
+    def set_search_path(self, search_path):
+        """ Set default search path for session """
+    
+        if type(search_path) == tuple:
+            self.search_path = list(search_path)
+        elif type(search_path) == list:
+            self.search_path = search_path
+        elif type(search_path) == str:
+            self.search_path = [search_path]
+        else:
+            raise TypeError('search_path must be one of: list, tuple, str')
         
-        return self.tables
-
-    def load_sequences(self):
-        self.sequences = ObjectList()
-        
-        for i in sequences(self.conn):
-            s = Sequence.factory(self.conn, **i)
-            self.sequences.setattr(i['name'], s)
-        return self.sequences
+        # Sadly, we have to clear out most of the autoloaded data :(
+        for k in self.__dict__['__attributes'].keys():
+            if k == 'schemas':
+                continue
+            
+            if k in self.__dict__:
+                del self.__dict__[k]
 
     def load_schemas(self):
-        raise NotImplementedError('load_schemas() not implemented')
-    
-    def load_views(self):
-        self.views = ObjectList()
+        """ Auto load schemas """
         
-        for i in views(self.conn):
-            v = View.factory(self.conn, **i)
-            self.views.setattr(i['name'], v)
-        return self.views
+        self.schemas = ObjectList()
+        for i in schemas(self.conn):
+            s = Schema.factory(self.conn, **i)
+            self.schemas.setattr(i['name'], s)
+        
+        return self.schemas
 
     @staticmethod
-    def get(conn):
+    def get(conn, search_path=['public']):
         dbdef = Database()
+        dbdef.search_path = search_path
         dbdef.conn = conn
         
         # Get database
@@ -555,7 +722,6 @@ class Database(Relation):
         dbdef.name = database
         return dbdef
 
-class Schema(object): pass
 class User(object): pass
 class UniqueConstraint(object): pass
 class CheckConstraint(object): pass

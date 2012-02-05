@@ -23,6 +23,7 @@ def main():
     dbdef = pgsql_relations.Database.get(db)
     print dbdef
 
+    """
     # Databases
     for name in pgsql_relations.databases(db):
         print name
@@ -43,14 +44,25 @@ def main():
     for i in dbdef.sequences:
         print i
     
-    # Views
-    for i in dbdef.views:
-        print i
+    # View definitions
+    for name, obj in dbdef.views:
+        print obj.definition
     
     # Column lists work on views :)
-    res = pgsql_relations.columns(db, 'dpages_view')
-    for i in res:
-        print (i['name'], i['internaltype'])
+    for name, obj in dbdef.views.dpages_view.columns:
+        print (name, obj.table, obj.internaltype)
+    
+    """
+    
+    for i in dbdef.tables:
+        print i
+    
+    dbdef.set_search_path('information_schema')
+    for i in dbdef.tables:
+        print i
+    
+    for name, obj in dbdef.schemas.pg_catalog.views:
+        print name
     
     db.close()
     sys.exit(0)
