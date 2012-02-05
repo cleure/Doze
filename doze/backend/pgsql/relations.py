@@ -61,125 +61,6 @@ def tables(conn = None, schema = 'public'):
     
     return rows
 
-"""
-SELECT
-    n.nspname as schema,
-    c2.relname as table,
-    c.relname as name,
-    CASE c.relkind
-        WHEN 'r' THEN 'table'
-        WHEN 'v' THEN 'view'
-        WHEN 'i' THEN 'index'
-        WHEN 'S' THEN 'sequence'
-        WHEN 's' THEN 'special'
-    END as type,
-    i.indisunique AS is_unique,
-    i.indisprimary AS is_primary,
-    u.usename AS owner
-    FROM pg_catalog.pg_class c
-        JOIN pg_catalog.pg_index i ON (i.indexrelid = c.oid)
-        JOIN pg_catalog.pg_class c2 ON (i.indrelid = c2.oid)
-        LEFT JOIN pg_catalog.pg_user u ON (u.usesysid = c.relowner)
-        LEFT JOIN pg_catalog.pg_namespace n ON (n.oid = c.relnamespace)
-    WHERE c.relkind IN ('i','')
-        AND n.nspname NOT IN ('pg_catalog', 'pg_toast')
-        AND pg_catalog.pg_table_is_visible(c.oid);
-
-"""
-
-
-"""
-
-    pg_index
-        indexrelid
-        indrelid
-    pg_attribute
-        attrelid
-    
-    table
-        column --\____
-        index  --/
-
-        SELECT
-        tb.tablename AS table,
-        tb.schemaname AS schema,
-        a.attname AS name,
-        t.typname AS internaltype,
-        CASE
-            WHEN SUBSTRING(TRIM(t.typname) FROM 1 FOR 3) = 'int' THEN 'integer'
-            WHEN SUBSTRING(TRIM(t.typname) FROM 1 FOR 4) = 'float' THEN 'float'
-            WHEN t.typname = 'varchar' THEN 'char'
-            WHEN t.typname = 'text' THEN 'char'
-            WHEN t.typname = 'bytea' THEN 'binary'
-            ELSE t.typname
-        END AS externaltype,
-        CASE a.attlen
-            WHEN -1 THEN
-                CASE t.typname
-                    WHEN 'numeric' THEN (a.atttypmod / 65536)
-                    WHEN 'decimal' THEN (a.atttypmod / 65536)
-                    WHEN 'money'   THEN (a.atttypmod / 65536)
-                    ELSE CASE a.atttypmod
-                        WHEN -1 THEN NULL
-                        ELSE a.atttypmod - 4
-                        END
-                    END
-                ELSE a.attlen
-                END AS length,
-                CASE t.typname
-                    WHEN 'numeric' THEN (a.atttypmod % 65536) - 4
-                    WHEN 'decimal' THEN (a.atttypmod % 65536) - 4
-                    WHEN 'money'   THEN (a.atttypmod % 65536) - 4
-                    ELSE 0
-                END AS scale,
-        a.attnotnull AS not_null,
-        a.atttypmod AS type_mod,
-        a.atthasdef AS has_default,
-        (SELECT substring(pg_get_expr(d.adbin, d.adrelid) for 128)
-            FROM pg_attrdef d
-            WHERE d.adrelid = a.attrelid
-                AND d.adnum = a.attnum
-                AND a.atthasdef
-        ) as default
-        FROM pg_catalog.pg_attribute a
-            RIGHT JOIN pg_catalog.pg_class c ON (c.oid = a.attrelid)
-            RIGHT JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid)
-            JOIN pg_catalog.pg_tables tb ON (tb.schemaname = 'public' AND tb.tablename = 'gallery')
-        WHERE c.relname = 'gallery'
-            AND NOT a.attisdropped
-            AND a.attnum > 0
-        ORDER BY a.attnum;
-
-76992 |      77491
-
-
-TODO: Autoload columns AND indexes, at the same time,
-    when columns are accessed, as they depend on each other.
-
-SELECT
-    ix.indexrelid,
-    ix.indrelid,
-    t.relname AS table,
-    i.relname AS index,
-    ix.indisprimary AS is_primary,
-    ix.indisunique AS is_unique,
-    a.attname AS column
-    FROM
-        pg_class t,
-        pg_class i,
-        pg_index ix,
-        pg_attribute a
-    WHERE
-        t.oid = ix.indrelid
-        AND i.oid = ix.indexrelid
-        AND a.attrelid = t.oid
-        AND a.attnum = ANY(ix.indkey)
-        AND t.relkind = 'r'
-        AND t.relname = 'clubhouse_members'
-    ORDER BY t.relname, i.relname;
-
-"""
-
 
 def columns(conn, table, schema = 'public'):
     """
@@ -261,10 +142,55 @@ def columns(conn, table, schema = 'public'):
     cursor.close()
     return rows
 
+
 def indexes(conn, table, schema = 'public'):
     """ Get indexes on table, using connection """
-    pass
-
+    
+    #
+    # TODO: Get column order correct
+    #
+    
+    query = """
+        SELECT
+            ix.indexrelid,
+            ix.indrelid,
+            ns.nspname AS schema,
+            t.relname AS table,
+            i.relname AS name,
+            ix.indisprimary AS is_primary,
+            ix.indisunique AS is_unique,
+            a.attname AS column
+        FROM
+            pg_catalog.pg_class t,
+            pg_catalog.pg_class i,
+            pg_catalog.pg_index ix,
+            pg_catalog.pg_attribute a,
+            pg_catalog.pg_namespace ns
+        WHERE
+            t.oid = ix.indrelid
+            AND i.oid = ix.indexrelid
+            AND a.attrelid = t.oid
+            AND a.attnum = ANY(ix.indkey)
+            AND t.relkind = 'r'
+            AND ns.oid = t.relnamespace
+            AND ns.nspname = %s
+            AND t.relname = %s
+        ORDER BY t.relname, i.relname"""
+    
+    cursor = conn.cursor()
+    cursor.execute(query, [schema, table])
+    
+    # Get column map
+    columns = [i.name for i in cursor.description]
+    
+    # Build result to return
+    rows = []
+    for i in cursor.fetchall():
+        rows.append(dict(zip(columns, i)))
+    
+    cursor.close()
+    return rows
+    
 
 class ObjectList(object):
     """
@@ -329,6 +255,33 @@ class Relation(object):
         # Alias for __unicode__
         return self.__unicode__()
 
+class Index(Relation):
+    """ Index object """
+
+    @staticmethod
+    def factory(conn,
+            table=None,
+            schema=None,
+            name=None,
+            indexrelid=None,
+            indrelid=None,
+            is_primary=None,
+            is_unique=None,
+            columns=None):
+        
+        ind = Index()
+        ind.conn = conn
+        ind.table = table
+        ind.schema = schema
+        ind.name = name
+        ind.indexrelid = indexrelid
+        ind.indrelid = indrelid
+        ind.is_primary = is_primary
+        ind.is_unique = is_unique
+        ind.columns = columns
+        
+        return ind
+
 class Column(Relation):
     """ Column object """
     
@@ -378,6 +331,27 @@ class Table(Relation):
             'triggers': 'load_triggers',
             'rules': 'load_rules'}
     
+    def load_indexes(self):
+        self.indexes = ObjectList()
+        
+        # Data must be grouped properly
+        last = None
+        data = []
+        for i in indexes(self.conn, self.name, self.schema):
+            if last == i['name']:
+                data[len(data) - 1]['columns'].append(i['column'])
+            else:
+                i['columns'] = [i['column']]
+                del i['column']
+                data.append(i)
+            last = i['name']
+        
+        # Append objects
+        for i in data:
+            ind = Index.factory(self.conn, **i)
+            self.indexes.setattr(i['name'], ind)
+        return self.indexes
+    
     def load_columns(self):
         self.columns = ObjectList()
         for i in columns(self.conn, self.name, self.schema):
@@ -425,7 +399,6 @@ class Database(Relation):
         return dbdef
 
 class User(object): pass
-class Index(object): pass
 class Sequence(object): pass
 class UniqueConstraint(object): pass
 class CheckConstraint(object): pass
