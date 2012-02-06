@@ -12,11 +12,11 @@ default.
 Doze has built in support for Server Side Cursors, and asynchronous connections,
 making it suitable for working with large datasets, without needing a lot of memory.
 In contrast to many SQL Wrappers and ORMs, Doze is designed to let you build complex
-SQL commands, without ever needing to resort to writing SQL by hand. In fact, one major
-goal for Doze is to eventually support the entire SQL99 specification. It already
-supports many modern features, such as Common Table Expressions (WITH ... SELECT),
-complex Joins, Where clauses, and Sub Queries. Other modern features are being actively
-worked on.
+SQL commands, without ever needing to resort to writing SQL by hand. In fact, one
+major goal for Doze is to eventually support the entire SQL99 specification. It
+already supports many modern features, such as Common Table Expressions
+(WITH ... SELECT), complex Joins, Where clauses, and Sub Queries. Other modern
+features are being actively worked on.
 
 
 =================================
