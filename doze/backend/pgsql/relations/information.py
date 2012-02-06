@@ -21,11 +21,26 @@ def current_database(conn):
 def databases(conn):
     """ Get list of databases, using conn as the connection. """
 
+    query = """
+        SELECT
+            d.datname, r.rolname AS owner
+        FROM
+            pg_catalog.pg_database d,
+            pg_catalog.pg_roles r
+        WHERE r.oid = d.datdba"""
+
     cursor = conn.cursor()
-    cursor.execute('SELECT datname FROM pg_catalog.pg_database')
-    rows = [str(i[0]) for i in cursor.fetchall()]
-    cursor.close()
+    cursor.execute(query)
     
+    # Get column map
+    columns = [i.name for i in cursor.description]
+    
+    # Build result to return
+    rows = []
+    for i in cursor.fetchall():
+        rows.append(dict(zip(columns, i)))
+    
+    cursor.close()
     return rows
 
 def tables(conn, schema='public'):

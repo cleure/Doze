@@ -313,8 +313,8 @@ class Database(
         dbdef = Database()
         dbdef.search_path = search_path
         dbdef.conn = conn
-        
         dbdef.name = current_database(conn)
+        
         return dbdef
 
 class User(object): pass

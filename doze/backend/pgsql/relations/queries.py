@@ -163,6 +163,25 @@ SELECT
     WHERE
         r.oid = n.nspowner;
 
+# Databases
+SELECT d.datname, r.rolname AS owner
+    FROM
+        pg_catalog.pg_database d,
+        pg_catalog.pg_roles r
+    WHERE r.oid = d.datdba;
+
+# Constraints
+# http://www.postgresql.org/docs/7.4/interactive/catalog-pg-constraint.html
+SELECT
+    c.conname AS name,
+    t.relname AS table,
+    c.consrc AS definition
+    FROM
+        pg_catalog.pg_constraint c,
+        pg_catalog.pg_class t
+    WHERE
+        t.oid = c.conrelid
+        AND t.relname = 'clubhouse_members';
 
 """
 
