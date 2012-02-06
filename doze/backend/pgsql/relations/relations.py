@@ -7,8 +7,8 @@
 
 import sys
 import doze.backend.pgsql as pgsql
-from .base import *
-from .information import *
+from base import *
+from information import *
 
 """
 

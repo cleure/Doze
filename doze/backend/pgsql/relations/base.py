@@ -5,7 +5,7 @@
 *
 """
 
-from .information import *
+from information import *
 
 class ObjectList(object):
     """
