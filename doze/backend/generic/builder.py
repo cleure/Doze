@@ -48,7 +48,7 @@ class QueryResult(object):
     
     def initCursorDescr(self):
         for i in self.cursor.description:
-            self.labels.append(i.name)
+            self.labels.append(i[0])
         
         self.cursorDescrInit = True
     
