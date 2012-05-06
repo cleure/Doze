@@ -183,6 +183,66 @@ SELECT
         t.oid = c.conrelid
         AND t.relname = 'clubhouse_members';
 
+# Check Constraints
+SELECT
+    n.nspname AS schema,
+    c.conname AS name,
+    t.relname AS table,
+    c.consrc AS definition
+    FROM
+        pg_catalog.pg_constraint c,
+        pg_catalog.pg_class t,
+        pg_catalog.pg_namespace n
+    WHERE
+        t.oid = c.conrelid
+        AND t.relnamespace = n.oid
+        AND t.relname = 'clubhouse_members'
+        AND c.contype = 'f';
+
+# Foriegn Key Constraints
+SELECT
+    c.confupdtype,
+    c.confdeltype,
+    n1.nspname AS src_schema,
+    n2.nspname AS dst_schema,
+    c.conname AS name,
+    t1.relname AS src_table,
+    t2.relname as dst_table,
+    c.condeferrable AS deferrable,
+    c.confmatchtype AS match_type,
+    c.conkey,
+    c.confkey,
+    c.conrelid AS src_table_oid,
+    c.confrelid AS dst_table_oid
+    FROM
+        pg_catalog.pg_constraint c,
+        pg_catalog.pg_class t1,
+        pg_catalog.pg_class t2,
+        pg_catalog.pg_namespace n1,
+        pg_catalog.pg_namespace n2
+    WHERE
+        t1.oid = c.conrelid
+        AND t1.relnamespace = n1.oid
+        AND c.confrelid = t2.oid
+        AND t2.relnamespace = n2.oid
+        AND c.contype = 'f'
+        AND t1.relname = 'clubhouse_prize_selection';
+
+
+
+        SELECT
+        a.attnum,
+        a.attname AS name
+        FROM pg_catalog.pg_attribute a
+            RIGHT JOIN pg_catalog.pg_class c ON (c.oid = a.attrelid)
+        WHERE c.oid = 77003
+            AND NOT a.attisdropped
+            AND a.attnum > 0
+            AND a.attnum = 1
+        ORDER BY a.attnum;
+
+dst_table_oid = 77003
+
 """
 
 

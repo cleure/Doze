@@ -325,3 +325,123 @@ def schemas(conn):
     
     cursor.close()
     return rows
+
+def check_constraints(conn, table, schema='public'):
+    """ Get list of Check Constraints on table """
+    
+    query = """
+        SELECT
+            n.nspname AS schema,
+            t.relname AS table,
+            c.conname AS name,
+            c.consrc AS definition
+            FROM
+                pg_catalog.pg_constraint c,
+                pg_catalog.pg_class t,
+                pg_catalog.pg_namespace n
+            WHERE
+                t.oid = c.conrelid
+                AND t.relnamespace = n.oid
+                AND c.contype = 'c'
+                AND t.relname = %s
+                AND n.nspname = %s"""
+    
+    cursor = conn.cursor()
+    cursor.execute(query, [table, schema])
+    
+    # Column map
+    columns = [i.name for i in cursor.description]
+    
+    # Build result to return
+    rows = []
+    for i in cursor.fetchall():
+        rows.append(dict(zip(columns, i)))
+    
+    cursor.close()
+    
+    return rows
+
+def foreign_key_constraints(conn, table, schema='public'):
+    """ Get list of Foreign Key Constraints on table """
+    
+    cursor2 = conn.cursor()
+    colname_query = """
+        SELECT
+            a.attname AS name
+            FROM pg_catalog.pg_attribute a
+                RIGHT JOIN pg_catalog.pg_class c ON (c.oid = a.attrelid)
+            WHERE c.oid = %s
+                AND NOT a.attisdropped
+                AND a.attnum > 0
+                AND a.attnum = %s"""
+    
+    # Nested helper function
+    def get_columns_by_attrnums(tableoid, attrnums=[]):
+        colnames = []
+        for i in attrnums:
+            cursor.execute(colname_query, [tableoid, i])
+            res = cursor.fetchone()
+            colnames.append(res[0])
+        return colnames
+    
+    query = """
+        SELECT
+            n1.nspname AS src_schema,
+            n2.nspname AS dst_schema,
+            c.conname AS name,
+            t1.relname AS src_table,
+            t2.relname as dst_table,
+            c.condeferrable AS deferrable,
+            c.confmatchtype AS match_type,
+            c.conkey,
+            c.confkey,
+            c.conrelid AS src_table_oid,
+            c.confrelid AS dst_table_oid,
+            c.confupdtype AS on_update_action,
+            c.confdeltype AS on_delete_action
+            FROM
+                pg_catalog.pg_constraint c,
+                pg_catalog.pg_class t1,
+                pg_catalog.pg_class t2,
+                pg_catalog.pg_namespace n1,
+                pg_catalog.pg_namespace n2
+            WHERE
+                t1.oid = c.conrelid
+                AND t1.relnamespace = n1.oid
+                AND c.confrelid = t2.oid
+                AND t2.relnamespace = n2.oid
+                AND c.contype = 'f'
+                AND n1.nspname = %s
+                AND t1.relname = %s"""
+
+    cursor = conn.cursor()
+    cursor.execute(query, [schema, table])
+    
+    # Column map
+    columns = [i.name for i in cursor.description]
+    
+    # Build result to return
+    rows = []
+    
+    for i in cursor.fetchall():
+        row = dict(zip(columns, i))
+        src_columns = get_columns_by_attrnums(
+            row['src_table_oid'],
+            row['conkey'])
+        
+        dst_columns = get_columns_by_attrnums(
+            row['dst_table_oid'],
+            row['confkey'])
+        
+        row['src_columns'] = src_columns
+        row['dst_columns'] = dst_columns
+        del row['dst_table_oid']
+        del row['src_table_oid']
+        del row['confkey']
+        del row['conkey']
+        
+        rows.append(row)
+    
+    cursor.close()
+    cursor2.close()
+    return rows

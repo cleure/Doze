@@ -70,6 +70,23 @@ class LazyloadColumns(object):
             self.columns.setattr(i['name'], col)
         return self.columns
 
+class LazyLoadConstraints(object):
+    """ Lazy Load Constraints """
+    
+    def load_constraints(self):
+        self.constraints = ObjectList()
+        
+        # Check Constraints
+        for i in check_constraints(self.conn, self.name, self.schema):
+            obj = CheckConstraint.factory(self.conn, **i)
+            self.constraints.setattr(i['name'], obj)
+            
+        for i in foreign_key_constraints(self.conn, self.name, self.schema):
+            obj = ForeignKeyConstraint.factory(self.conn, **i)
+            self.constraints.setattr(i['name'], obj)
+            
+        return self.constraints
+
 # Relations
 class Index(Relation):
     """ Index object """
@@ -100,6 +117,8 @@ class Index(Relation):
         return ind
     
     def __str__(self):
+        """ To String """
+    
         bc = pgsql.BaseClause()
     
         path = '.'.join([
@@ -161,6 +180,8 @@ class Column(Relation):
         return col
     
     def __str__(self):
+        """ To String """
+    
         bc = pgsql.BaseClause()
         name = bc.quoteField(self.name)
     
@@ -177,7 +198,139 @@ class Column(Relation):
         
         return ' '.join(pre)
 
-class Table(Relation, LazyloadColumns):
+class CheckConstraint(Relation):
+    """ Check Constraint """
+
+    factory_params = [
+            'schema',
+            'table',
+            'name',
+            'definition']
+
+    @staticmethod
+    def factory(conn, **kwargs):
+        "Factory Method"
+        
+        constr = CheckConstraint()
+        constr.conn = conn
+        constr['type'] = 'c'
+        
+        for k, v in kwargs.items():
+            if k not in CheckConstraint.factory_params:
+                raise TypeError(Relation.bad_argument_fmt
+                    % (sys._getframe().f_code.co_name, k))
+            constr[k] = v
+        
+        return constr
+    
+    def __str__(self):
+        """ To String """
+    
+        bc = pgsql.BaseClause()
+    
+        path = '.'.join([
+            bc.quoteField(self.schema),
+            bc.quoteField(self.table)])
+        
+        pre = [
+            'ALTER TABLE', path,
+            'ADD CONSTRAINT', self.name,
+            'CHECK', self.definition]
+        
+        return ' '.join(pre)
+
+class ForeignKeyConstraint(Relation):
+    factory_params = [
+            'src_schema',
+            'src_table',
+            'dst_schema',
+            'dst_table',
+            'name',
+            'src_columns',
+            'dst_columns',
+            'match_type',
+            'deferrable',
+            'on_update_action',
+            'on_delete_action']
+    
+    @staticmethod
+    def factory(conn, **kwargs):
+        """ Factory Method """
+    
+        fkey = ForeignKeyConstraint()
+        fkey.conn = conn
+        
+        fkey['type'] = 'f'
+        
+        for k, v in kwargs.items():
+            if k not in ForeignKeyConstraint.factory_params:
+                raise TypeError(Relation.bad_argument_fmt
+                    % (sys._getframe().f_code.co_name, k))
+            fkey[k] = v
+        return fkey
+    
+    def __str__(self):
+        """ To String """
+        
+        bc = pgsql.BaseClause()
+        src_path = '.'.join([
+            bc.quoteField(self.src_schema),
+            bc.quoteField(self.src_table)])
+            
+        dst_path = '.'.join([
+            bc.quoteField(self.dst_schema),
+            bc.quoteField(self.dst_table)])
+        
+        src_columns = []
+        dst_columns = []
+        
+        for i in self.src_columns:
+            src_columns.append(bc.quoteField(i))
+            
+        for i in self.dst_columns:
+            dst_columns.append(bc.quoteField(i))
+        
+        src_columns = ', '.join(src_columns)
+        dst_columns = ', '.join(dst_columns)
+        
+        pre = [
+            'ALTER TABLE', src_path,
+            'ADD CONSTRAINT', self.name,
+            'FOREIGN KEY', '(', src_columns, ')',
+            'REFERENCES', dst_path, '(', dst_columns, ')']
+        
+        if self.match_type == 'f':
+            pre.append('MATCH FULL')
+        elif self.match_type == 'p':
+            pre.append('MATCH PARTIAL')
+        elif self.match_type == 'u':
+            pre.append('MATCH SIMPLE')
+        
+        if self.on_update_action == 'r':
+            pre.append('ON UPDATE RESTRICT')
+        elif self.on_update_action == 'c':
+            pre.append('ON UPDATE CASCADE')
+        elif self.on_update_action == 'a':
+            pre.append('ON UPDATE NO ACTION')
+        elif self.on_update_action == 'n':
+            pre.append('ON UPDATE SET NULL')
+        elif self.on_update_action == 'd':
+            pre.append('ON UPDATE SET DEFAULT')
+            
+        if self.on_delete_action == 'r':
+            pre.append('ON DELETE RESTRICT')
+        elif self.on_delete_action == 'c':
+            pre.append('ON DELETE CASCADE')
+        elif self.on_delete_action == 'a':
+            pre.append('ON DELETE NO ACTION')
+        elif self.on_delete_action == 'n':
+            pre.append('ON DELETE SET NULL')
+        elif self.on_delete_action == 'd':
+            pre.append('ON DELETE SET DEFAULT')
+        
+        return ' '.join(pre)
+
+class Table(Relation, LazyloadColumns, LazyLoadConstraints):
     """ Table object """
     
     def __init__(self):
@@ -244,6 +397,9 @@ class Table(Relation, LazyloadColumns):
         yield ' '.join(create_table)
         
         for name, obj in self.indexes:
+            yield str(obj)
+        
+        for name, obj in self.constraints:
             yield str(obj)
     
     def __str__(self):
@@ -390,7 +546,5 @@ class Database(
         
         return dbdef
 
-class User(object): pass
 class UniqueConstraint(object): pass
-class CheckConstraint(object): pass
-class ForeignKeyConstraint(object): pass
+class User(object): pass

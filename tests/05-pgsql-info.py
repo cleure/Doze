@@ -22,7 +22,13 @@ def main():
     db = connect()
     dbdef = pgsql_relations.Database.get(db)
     
-    print dbdef.tables.clubhouse_members
+    #print dbdef.tables.clubhouse_members
+    
+    for name, obj in dbdef.tables.clubhouse_prize_selection.constraints:
+        print obj
+    
+    #for i in pgsql_relations.information.foreign_key_constraints(db, 'clubhouse_prize_selection'):
+    #    print i
     
     db.close()
     sys.exit(0)
