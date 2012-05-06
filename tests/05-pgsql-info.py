@@ -21,41 +21,8 @@ def connect():
 def main():
     db = connect()
     dbdef = pgsql_relations.Database.get(db)
-    print dbdef
-
-    """
-    # Databases
-    for name in pgsql_relations.databases(db):
-        print name
     
-    # Tables
-    for name, obj in dbdef.tables:
-        print (name, str(obj))
-    
-    # Columns
-    for name, obj in dbdef.tables.advertisements.columns:
-        print (str(obj), obj.type, obj.internaltype, obj.length)
-    
-    # Indexes
-    for name, obj in dbdef.tables.clubhouse_members.indexes:
-        print (str(obj), obj.columns, obj.is_unique, obj.is_primary)
-    
-    # Sequences
-    for i in dbdef.sequences:
-        print i
-    
-    # View definitions
-    for name, obj in dbdef.views:
-        print obj.definition
-    
-    # Column lists work on views :)
-    for name, obj in dbdef.views.dpages_view.columns:
-        print (name, obj.table, obj.internaltype)
-    
-    """
-    
-    for i in dbdef.views.dpages_view.columns:
-        print i
+    print dbdef.tables.clubhouse_members
     
     db.close()
     sys.exit(0)

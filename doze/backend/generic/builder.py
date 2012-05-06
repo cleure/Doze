@@ -10,6 +10,9 @@ class QueryResult(object):
         self.setCursor(cursor, destroy)
         self.fetch = fetch
     
+    def __del__(self):
+        self.cursor.close()
+    
     def __len__(self):
         if self.cursor == None:
             return 0

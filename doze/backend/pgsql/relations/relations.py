@@ -98,6 +98,33 @@ class Index(Relation):
                     % (sys._getframe().f_code.co_name, k))
             ind[k] = v
         return ind
+    
+    def __str__(self):
+        bc = pgsql.BaseClause()
+    
+        path = '.'.join([
+            bc.quoteField(self.schema),
+            bc.quoteField(self.table)])
+        
+        columns = []
+        for i in self.columns:
+            columns.append(bc.quoteField(i))
+        
+        columns = '(' + ', '.join(columns) + ')'
+    
+        if self.is_primary:
+            pre = ['ALTER TABLE', path, 'ADD PRIMARY KEY', columns]
+            return ' '.join(pre)
+    
+        ci = 'CREATE INDEX'
+        if self.is_unique:
+            ci = 'CREATE UNIQUE INDEX'
+        
+        pre = [ci, self.name, 'ON', path]
+        pre.append(columns)
+        
+        return ' '.join(pre)
+
 
 class Column(Relation):
     """ Column object """
@@ -132,6 +159,23 @@ class Column(Relation):
             col['type'] = kwargs['externaltype']
         
         return col
+    
+    def __str__(self):
+        bc = pgsql.BaseClause()
+        name = bc.quoteField(self.name)
+    
+        if self.externaltype == 'char':
+            pre = [name, '%s(%s)' % (self.internaltype, str(self.length))]
+        else:
+            pre = [name, self.internaltype]
+        if self.has_default:
+            pre.append('DEFAULT')
+            pre.append(self.default)
+        
+        if self.not_null:
+            pre.append('NOT NULL')
+        
+        return ' '.join(pre)
 
 class Table(Relation, LazyloadColumns):
     """ Table object """
@@ -177,6 +221,35 @@ class Table(Relation, LazyloadColumns):
         tbl.name = name
         tbl.owner = owner
         return tbl
+    
+    def create_table(self):
+        # TODO: Constraints
+        # TODO: Triggers
+        # TODO: Rules
+    
+        bc = pgsql.BaseClause()
+        
+        path = '.'.join([
+            bc.quoteField(self.schema),
+            bc.quoteField(self.name)])
+            
+        create_table = ['CREATE TABLE', path, '(\n']
+        columns = []
+        indexes = []
+        
+        for name, obj in self.columns:
+            columns.append(str(obj))
+        
+        create_table.extend([',\n'.join(columns), '\n)'])
+        yield ' '.join(create_table)
+        
+        for name, obj in self.indexes:
+            yield str(obj)
+    
+    def __str__(self):
+        lst = list(self.create_table())
+        return ';\n'.join(lst) + ';'
+
 
 class Sequence(Relation):
     """ Sequence object """
@@ -299,7 +372,7 @@ class Database(
                 del self.__dict__[k]
 
     def load_schemas(self):
-        """ Auto load schemas """
+        """ Lazy load schemas """
         
         self.schemas = ObjectList()
         for i in schemas(self.conn):
