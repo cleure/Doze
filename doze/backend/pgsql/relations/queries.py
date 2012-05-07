@@ -243,6 +243,87 @@ SELECT
 
 dst_table_oid = 77003
 
+         34163 | bursts          | 00010001 | RI_FKey_check_upd
+         34163 | bursts          | 00001001 | RI_FKey_noaction_del
+         34163 | bursts          | 00010001 | RI_FKey_noaction_upd
+
+CREATE TABLE test (
+    id serial primary key,
+    modified TIMESTAMP
+);
+
+CREATE OR REPLACE FUNCTION dummy_trigger_func () RETURNS TRIGGER
+AS $$
+DECLARE
+    r RECORD;
+BEGIN
+    SELECT INTO r NOW() AS now;
+        
+    IF FOUND THEN
+        NEW.modified = now;
+        RETURN NEW;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+--- 0 | test                      | 00010111 | dummy_trigger_func
+CREATE TRIGGER dummy_trigger_func_tr BEFORE INSERT OR UPDATE ON test
+FOR EACH ROW EXECUTE PROCEDURE dummy_trigger_func();
+
+--- 0 | test                      | 00010101 | dummy_trigger_func
+CREATE TRIGGER dummy_trigger_func_tr AFTER INSERT OR UPDATE ON test
+FOR EACH ROW EXECUTE PROCEDURE dummy_trigger_func();
+
+--- 0 | test                      | 00010100 | dummy_trigger_func
+CREATE TRIGGER dummy_trigger_func_tr AFTER INSERT OR UPDATE ON test
+EXECUTE PROCEDURE dummy_trigger_func();
+
+INSERT_MASK = 00000100
+DELETE_MASK = 00001000
+UPDATE_MASK = 00010000
+
+BEFORE_INS_UPD_MASK = 00000010
+AFTER_INS_UPD_MASK = 00000000
+
+FOR_EACH_ROW_MASK = 00000001
+NOT_FOR_EACH_ROW_MASK = 00000000
+
+if tgconstrrelid is 0, trigger is NOT a referential integrity trigger, otherwise, it is.
+
+PG_TRIGGER_FOR_EACH_MASK    = 0b00000001 = 1
+PG_TRIGGER_BEFORE_MASK      = 0b00000010 = 2
+PG_TRIGGER_INS_MASK         = 0b00000100 = 4
+PG_TRIGGER_DEL_MASK         = 0b00001000 = 8
+PG_TRIGGER_UPD_MASK         = 0b00010000 = 16
+
+# Non RI Triggers
+SELECT
+    n.nspname AS schema,
+    t.relname AS table,
+    tg.tgname AS name,
+    (tg.tgtype::int)::bit(8) AS type,
+    (tg.tgtype & 1)::bool AS for_each_row,
+    (tg.tgtype & 2)::bool AS execute_before,
+    (tg.tgtype & 4)::bool AS on_insert,
+    (tg.tgtype & 8)::bool AS on_delete,
+    (tg.tgtype & 16)::bool AS on_update,
+    --p.prosrc AS source,
+    p.proname AS function
+    FROM
+        pg_catalog.pg_trigger tg,
+        pg_catalog.pg_class t,
+        pg_catalog.pg_namespace n,
+        pg_catalog.pg_proc p
+    WHERE
+        tg.tgrelid = t.oid
+        AND tg.tgfoid = p.oid
+        AND t.relnamespace = n.oid
+        AND tg.tgisconstraint = 'f'
+        AND n.nspname = 'public'
+        AND t.relname = 'test';
+
 """
 
 

@@ -445,3 +445,51 @@ def foreign_key_constraints(conn, table, schema='public'):
     cursor.close()
     cursor2.close()
     return rows
+
+def non_referential_triggers(conn, table=None, schema='public'):
+    """
+    Returns a list of Triggers which are not used for
+    referential integrity (non Foreign Keys, etc).
+    """
+
+    query = """
+        SELECT
+            n.nspname AS schema,
+            t.relname AS table,
+            tg.tgname AS name,
+            (tg.tgtype::int)::bit(8)    AS type,
+            (tg.tgtype & 1)::bool       AS for_each_row,
+            (tg.tgtype & 2)::bool       AS execute_before,
+            (tg.tgtype & 4)::bool       AS on_insert,
+            (tg.tgtype & 8)::bool       AS on_delete,
+            (tg.tgtype & 16)::bool      AS on_update,
+            p.proname AS function
+            FROM
+                pg_catalog.pg_trigger tg,
+                pg_catalog.pg_class t,
+                pg_catalog.pg_namespace n,
+                pg_catalog.pg_proc p
+            WHERE
+                tg.tgrelid = t.oid
+                AND tg.tgfoid = p.oid
+                AND t.relnamespace = n.oid
+                AND tg.tgisconstraint = 'f'"""
+    
+    cursor = conn.cursor()
+    if table is not None:
+        query += "AND n.nspname = %s\n"
+        query += "AND t.relname = %s"
+        cursor.execute(query, [schema, table])
+    else:
+        cursor.execute(query)
+    
+    # Column map
+    columns = [i.name for i in cursor.description]
+    
+    # Build result to return
+    rows = []
+    for i in cursor.fetchall():
+        rows.append(dict(zip(columns, i)))
+    
+    cursor.close()
+    return rows

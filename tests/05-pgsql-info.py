@@ -24,11 +24,13 @@ def main():
     
     #print dbdef.tables.clubhouse_members
     
-    for name, obj in dbdef.tables.clubhouse_prize_selection.constraints:
-        print obj
+    #for name, obj in dbdef.tables.clubhouse_prize_selection.constraints:
+    #    print obj
     
-    #for i in pgsql_relations.information.foreign_key_constraints(db, 'clubhouse_prize_selection'):
+    #for i in pgsql_relations.information.non_referential_triggers(db, 'test'):
     #    print i
+    
+    print dbdef.tables.test
     
     db.close()
     sys.exit(0)

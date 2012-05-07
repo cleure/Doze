@@ -13,6 +13,7 @@ from information import *
 """
 
 TODO: Cleanup class hierarchy
+TODO: Split into multiple files
 
 """
 
@@ -22,6 +23,13 @@ PG_CLASS_VIEW = 'v'
 PG_CLASS_INDEX = 'i'
 PG_CLASS_SEQUENCE = 'S'
 PG_CLASS_SPECIAL = 's'
+
+# Trigger Masks, as per the tgtype column on pg_catalog.pg_trigger
+PG_TRIGGER_FOR_EACH_MASK    = 0b00000001
+PG_TRIGGER_BEFORE_MASK      = 0b00000010
+PG_TRIGGER_INS_MASK         = 0b00000100
+PG_TRIGGER_DEL_MASK         = 0b00001000
+PG_TRIGGER_UPD_MASK         = 0b00010000
 
 # Lazy loaders
 class LazyloadTables(object):
@@ -80,12 +88,24 @@ class LazyLoadConstraints(object):
         for i in check_constraints(self.conn, self.name, self.schema):
             obj = CheckConstraint.factory(self.conn, **i)
             self.constraints.setattr(i['name'], obj)
-            
+        
+        # Foreign Key Constraints
         for i in foreign_key_constraints(self.conn, self.name, self.schema):
             obj = ForeignKeyConstraint.factory(self.conn, **i)
             self.constraints.setattr(i['name'], obj)
             
         return self.constraints
+
+class LazyLoadTriggers(object):
+    """ Lazy Load Triggers  """
+    
+    def load_triggers(self):
+        self.triggers = ObjectList()
+        
+        for i in non_referential_triggers(self.conn, self.name, self.schema):
+            obj = Trigger.factory(self.conn, **i)
+            self.triggers.setattr(i['name'], obj)
+        return self.triggers
 
 # Relations
 class Index(Relation):
@@ -330,7 +350,72 @@ class ForeignKeyConstraint(Relation):
         
         return ' '.join(pre)
 
-class Table(Relation, LazyloadColumns, LazyLoadConstraints):
+class Trigger(Relation):
+    """ Trigger Class """
+    
+    factory_params = [
+        'schema',
+        'table',
+        'name',
+        'type',
+        'for_each_row',
+        'execute_before',
+        'on_insert',
+        'on_delete',
+        'on_update',
+        'function']
+
+    @staticmethod
+    def factory(conn, **kwargs):
+        """ Factory Method """
+    
+        trigger = Trigger()
+        trigger.conn = conn
+        
+        for k, v in kwargs.items():
+            if k not in Trigger.factory_params:
+                raise TypeError(Relation.bad_argument_fmt
+                    % (sys._getframe().f_code.co_name, k))
+            trigger[k] = v
+        return trigger
+    
+    def __str__(self):
+        """ To String """
+        
+        bc = pgsql.BaseClause()
+        path = '.'.join([
+            bc.quoteField(self.schema),
+            bc.quoteField(self.table)])
+        name = bc.quoteField(self.name)
+        function = bc.quoteField(self.function)
+        
+        pre = ['CREATE TRIGGER', name]
+        if (self.execute_before):
+            pre.append('AFTER')
+        else:
+            pre.append('BEFORE')
+        
+        operations = []
+        if self.on_insert:
+            operations.append('INSERT')
+        
+        if self.on_update:
+            operations.append('UPDATE')
+            
+        if self.on_delete:
+            operations.append('DELETE')
+        
+        pre.extend([' OR '.join(operations), 'ON', path, 'EXECUTE PROCEDURE'])
+        pre.extend([function, '()'])
+        
+        return ' '.join(pre)
+
+class Table(
+        Relation,
+        LazyloadColumns,
+        LazyLoadConstraints,
+        LazyLoadTriggers):
+    
     """ Table object """
     
     def __init__(self):
@@ -400,6 +485,9 @@ class Table(Relation, LazyloadColumns, LazyLoadConstraints):
             yield str(obj)
         
         for name, obj in self.constraints:
+            yield str(obj)
+        
+        for name, obj in self.triggers:
             yield str(obj)
     
     def __str__(self):
