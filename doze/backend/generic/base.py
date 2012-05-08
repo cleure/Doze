@@ -432,6 +432,10 @@ class BaseClause(object):
         fields.append(string[start:length].strip())
         return fields
     
+    def quoteValue(self, value):
+        """ Return Quoted Value """
+        raise NotImplementedError('Module does not implement this method')
+    
     def preProcessSql(self):
         """ Method which gets called before sql(), to update tableContext, etc. """
         for i in self.childObjects:

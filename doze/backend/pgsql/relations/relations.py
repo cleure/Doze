@@ -13,7 +13,8 @@ from information import *
 """
 
 TODO: Cleanup class hierarchy
-TODO: Split into multiple files
+TODO: Split into multiple files?
+TODO: Standardize names of attributes on Relation objects
 
 """
 
@@ -427,7 +428,7 @@ class Table(
             'rules': 'load_rules'}
     
     def load_indexes(self):
-        """ Auto load indexes """
+        """ Lazy load indexes """
     
         self.indexes = ObjectList()
         
@@ -461,8 +462,6 @@ class Table(
         return tbl
     
     def create_table(self):
-        # TODO: Constraints
-        # TODO: Triggers
         # TODO: Rules
     
         bc = pgsql.BaseClause()
@@ -501,7 +500,11 @@ class Sequence(Relation):
     factory_params = [
         'name',
         'schema',
-        'owner']
+        'owner',
+        'last_value',
+        'increment_by',
+        'max_value',
+        'min_value']
 
     @staticmethod
     def factory(conn, **kwargs):
@@ -516,6 +519,29 @@ class Sequence(Relation):
             seq[k] = v
         
         return seq
+    
+    def __str__(self):
+        """ To String """
+        
+        bc = pgsql.BaseClause()
+        
+        path = '.'.join([
+            bc.quoteField(self.schema),
+            bc.quoteField(self.name)])
+            
+        increment_by = bc.quoteValue(self.increment_by)
+        min_value = bc.quoteValue(self.min_value)
+        max_value = bc.quoteValue(self.max_value)
+        last_value = bc.quoteValue(self.last_value)
+        
+        pre = [
+            'CREATE SEQUENCE', path,
+            'INCREMENT BY', increment_by,
+            'MINVALUE', min_value,
+            'MAXVALUE', max_value,
+            'START WITH', last_value]
+        
+        return ' '.join(pre)
 
 class View(Relation, LazyloadColumns):
     """ View object """
@@ -634,5 +660,8 @@ class Database(
         
         return dbdef
 
-class UniqueConstraint(object): pass
-class User(object): pass
+class UniqueConstraint(Relation): pass
+class Rule(Relation): pass
+class StoredProcedure(Relation): pass
+class DataType(Relation): pass
+class User(Relation): pass

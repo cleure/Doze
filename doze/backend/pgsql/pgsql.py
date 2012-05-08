@@ -6,6 +6,7 @@ except ImportError:
     import psycopg as psycopg2
     DRIVER_NAME = 'psycopg'
 
+import psycopg2.extensions
 import random
 from doze import *
 import doze.backend.generic as generic
@@ -89,6 +90,10 @@ class BaseClause(generic.BaseClause):
     
     # Search quotes
     searchQuotes = '\'`'
+
+    def quoteValue(self, value):
+        """ Return Quoted Value """
+        return psycopg2.extensions.adapt(value).getquoted()
 
 class Where(generic.Where, BaseClause): pass
 class Join(generic.Join, BaseClause): pass

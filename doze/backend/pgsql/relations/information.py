@@ -83,6 +83,7 @@ def tables(conn, schema='public'):
 def sequences(conn, schema='public'):
     """ Get list of sequences """
     
+    bc = pgsql.BaseClause()
     escape = []
     query = """
         SELECT
@@ -98,6 +99,13 @@ def sequences(conn, schema='public'):
             AND a.oid = s.relowner
             AND s.relkind = 'S'"""
     
+    seq_map = [
+        'last_value',
+        'increment_by',
+        'max_value',
+        'min_value']
+    
+    seq_info = "SELECT %s FROM %s"
     
     if type(schema) == str:
         # Normal case, schema is a string
@@ -119,7 +127,17 @@ def sequences(conn, schema='public'):
     # Build result to return
     rows = []
     for i in cursor.fetchall():
-        rows.append(dict(zip(columns, i)))
+        row = dict(zip(columns, i))
+        
+        # Fetch sequence details
+        path = '.'.join([
+            bc.quoteField(row['schema']),
+            bc.quoteField(row['name'])])
+        
+        cursor.execute(seq_info % (','.join(seq_map), path))
+        row.update(dict(zip(seq_map, cursor.fetchone())))
+        
+        rows.append(row)
     
     cursor.close()
     return rows

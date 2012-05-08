@@ -77,6 +77,13 @@ class BaseClause(generic.BaseClause):
     
     # Search quotes
     searchQuotes = '\'`"'
+    
+    def quoteValue(self, value):
+        """ Return Quoted Value """
+        if type(value) == str:
+            return "'" + MySQLdb.escape_string(value) + "'"
+        
+        return value
 
 class Where(generic.Where, BaseClause): pass
 class Join(generic.Join, BaseClause): pass
