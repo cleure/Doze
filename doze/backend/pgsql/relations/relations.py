@@ -7,7 +7,7 @@
 
 import sys
 import doze.backend.pgsql as pgsql
-from base import *
+from doze.backend.generic.relations.base import *
 from information import *
 
 """
@@ -569,6 +569,19 @@ class View(Relation, LazyloadColumns):
                     % (sys._getframe().f_code.co_name, k))
             view[k] = v
         return view
+    
+    def __str__(self):
+        """ To String """
+        
+        bc = pgsql.BaseClause()
+        path = '.'.join([
+            bc.quoteField(self.schema),
+            bc.quoteField(self.name)])
+        
+        pre = ['CREATE VIEW', path,
+               'AS', self.definition]
+        
+        return ' '.join(pre)
 
 class Schema(
         Relation,
@@ -604,6 +617,11 @@ class Schema(
         # Set correct search path
         schem.search_path = kwargs['name']
         return schem
+    
+    def __str__(self):
+        bc = pgsql.BaseClause()
+        name = bc.quoteField(self.name)
+        return ' '.join(['CREATE SCHEMA', name])
 
 class Database(
         Relation,

@@ -30,7 +30,7 @@ def main():
     #for i in pgsql_relations.information.non_referential_triggers(db, 'test'):
     #    print i
     
-    for name, obj in dbdef.sequences:
+    for name, obj in dbdef.schemas:
         print obj
     
     db.close()

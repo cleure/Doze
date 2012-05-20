@@ -5,8 +5,6 @@
 *
 """
 
-from information import *
-
 class ObjectList(object):
     """
     ObjectList class. It provides a friendly interface for accessing
