@@ -26,11 +26,11 @@ PG_CLASS_SEQUENCE = 'S'
 PG_CLASS_SPECIAL = 's'
 
 # Trigger Masks, as per the tgtype column on pg_catalog.pg_trigger
-PG_TRIGGER_FOR_EACH_MASK    = 0b00000001
-PG_TRIGGER_BEFORE_MASK      = 0b00000010
-PG_TRIGGER_INS_MASK         = 0b00000100
-PG_TRIGGER_DEL_MASK         = 0b00001000
-PG_TRIGGER_UPD_MASK         = 0b00010000
+PG_TRIGGER_FOR_EACH_MASK    = int('00000001', 2)
+PG_TRIGGER_BEFORE_MASK      = int('00000010', 2)
+PG_TRIGGER_INS_MASK         = int('00000100', 2)
+PG_TRIGGER_DEL_MASK         = int('00001000', 2)
+PG_TRIGGER_UPD_MASK         = int('00010000', 2)
 
 # Lazy loaders
 class LazyloadTables(object):
