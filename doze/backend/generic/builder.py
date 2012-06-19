@@ -11,7 +11,8 @@ class QueryResult(object):
         self.fetch = fetch
     
     def __del__(self):
-        self.cursor.close()
+        if not self.cursor.closed:
+            self.cursor.close()
     
     def __len__(self):
         if self.cursor == None:
@@ -34,7 +35,8 @@ class QueryResult(object):
             res = self.cursor.fetchone()
         
         if self.destroy == True:
-            self.cursor.close()
+            if not self.cursor.closed:
+                self.cursor.close()
     
     def next(self):
         res = self.cursor.fetchone()
