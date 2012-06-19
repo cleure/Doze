@@ -33,7 +33,7 @@ def databases(conn):
     cursor.execute(query)
     
     # Get column map
-    columns = [i.name for i in cursor.description]
+    columns = [i[0] for i in cursor.description]
     
     # Build result to return
     rows = []
@@ -122,7 +122,7 @@ def sequences(conn, schema='public'):
     cursor.execute(query, escape)
     
     # Get column map
-    columns = [i.name for i in cursor.description]
+    columns = [i[0] for i in cursor.description]
     
     # Build result to return
     rows = []
@@ -176,7 +176,7 @@ def views(conn, schema='public'):
     cursor.execute(query, escape)
     
     # Get column map
-    columns = [i.name for i in cursor.description]
+    columns = [i[0] for i in cursor.description]
     
     # Build result to return
     rows = []
@@ -256,7 +256,7 @@ def columns(conn, table, schema='public'):
     cursor.execute(query, [schema, table, table])
     
     # Get column map
-    columns = [i.name for i in cursor.description]
+    columns = [i[0] for i in cursor.description]
     
     # Build result to return
     rows = []
@@ -308,7 +308,7 @@ def indexes(conn, table, schema = 'public'):
     cursor.execute(query, [schema, table])
     
     # Get column map
-    columns = [i.name for i in cursor.description]
+    columns = [i[0] for i in cursor.description]
     
     # Build result to return
     rows = []
@@ -334,7 +334,7 @@ def schemas(conn):
     cursor.execute(query)
     
     # Get column map
-    columns = [i.name for i in cursor.description]
+    columns = [i[0] for i in cursor.description]
     
     # Build result to return
     rows = []
@@ -368,7 +368,7 @@ def check_constraints(conn, table, schema='public'):
     cursor.execute(query, [table, schema])
     
     # Column map
-    columns = [i.name for i in cursor.description]
+    columns = [i[0] for i in cursor.description]
     
     # Build result to return
     rows = []
@@ -436,7 +436,7 @@ def foreign_key_constraints(conn, table, schema='public'):
     cursor.execute(query, [schema, table])
     
     # Column map
-    columns = [i.name for i in cursor.description]
+    columns = [i[0] for i in cursor.description]
     
     # Build result to return
     rows = []
@@ -502,7 +502,7 @@ def non_referential_triggers(conn, table=None, schema='public'):
         cursor.execute(query)
     
     # Column map
-    columns = [i.name for i in cursor.description]
+    columns = [i[0] for i in cursor.description]
     
     # Build result to return
     rows = []

@@ -5,7 +5,11 @@ from doze.backend.generic.where import *
 from doze.backend.generic.join import *
 
 class QueryResult(object):
-    """ API Draft """
+    """
+    Query Result Object. This is a wraps around the cursor object, and provides
+    an OO interface for accessing rows sequentially.
+    """
+
     def __init__(self, cursor = None, destroy = True, fetch = dict):
         self.setCursor(cursor, destroy)
         self.fetch = fetch
