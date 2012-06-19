@@ -207,7 +207,10 @@ class Column(Relation):
         name = bc.quoteField(self.name)
     
         if self.externaltype == 'char':
-            pre = [name, '%s(%s)' % (self.internaltype, str(self.length))]
+            if self.length is None:
+                pre = [name, '%s' % (self.internaltype)]
+            else:
+                pre = [name, '%s(%s)' % (self.internaltype, str(self.length))]
         else:
             pre = [name, self.internaltype]
         if self.has_default:
