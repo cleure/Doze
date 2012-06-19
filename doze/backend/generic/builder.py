@@ -20,8 +20,8 @@ class QueryResult(object):
     
     def __iter__(self):
         res = self.cursor.fetchone()
-        if res == None:
-            yield None
+        if res is None:
+            raise StopIteration()
         
         if self.cursorDescrInit == False:
             self.initCursorDescr()
