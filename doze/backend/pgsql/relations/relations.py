@@ -520,14 +520,17 @@ class Sequence(Relation):
                 raise TypeError(Relation.bad_argument_fmt
                     % (sys._getframe().f_code.co_name, k))
             seq[k] = v
-        
         return seq
     
-    def __str__(self):
-        """ To String """
+    def get_create_alter(self, type='create'):
+        """ Get CREATE/ALTER for sequence """
         
+        if type == 'create':
+            op = 'CREATE'
+        else:
+            op = 'ALTER'
+    
         bc = pgsql.BaseClause()
-        
         path = '.'.join([
             bc.quoteField(self.schema),
             bc.quoteField(self.name)])
@@ -538,13 +541,23 @@ class Sequence(Relation):
         last_value = bc.quoteValue(self.last_value)
         
         pre = [
-            'CREATE SEQUENCE', path,
+            op, 'SEQUENCE', path,
             'INCREMENT BY', increment_by,
             'MINVALUE', min_value,
             'MAXVALUE', max_value,
             'START WITH', last_value]
         
         return ' '.join(pre)
+    
+    def get_create(self):
+        return self.get_create_alter('create')
+
+    def get_alter(self):
+        return self.get_create_alter('alter')
+    
+    def __str__(self):
+        """ To String """
+        return self.get_create()
 
 class View(Relation, LazyloadColumns):
     """ View object """
