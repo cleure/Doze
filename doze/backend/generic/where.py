@@ -190,7 +190,7 @@ class Where(BaseClause):
         # Source
         if each['sourceType'] == VALUE:
             # Source is a value
-            source = '%s'
+            source = self.escapePattern
             escape.append(each['sourceName'])
         else:
             source = self.getAliasedField(each['sourceName'],\
@@ -199,7 +199,7 @@ class Where(BaseClause):
         # Dest
         if each['destType'] == VALUE:
             # Dest is value
-            dest = '%s'
+            dest = self.escapePattern
             
             if type(each['destName']) == list:
                 escape.extend(each['destName'])
@@ -252,14 +252,14 @@ class Where(BaseClause):
             if self.isSelectQuery(expression[2][0]):
                 # Is a sub-query
                 return expression[0] + ' IN (' + expression[2][0] + ')'
-        return expression[0] + ' IN (%s)' % ', '.join(['%s' for i in expression[2]])
+        return expression[0] + ' IN (%s)' % ', '.join([self.escapePattern for i in expression[2]])
 
     def build_notIn(self, expression, each):
         if len(expression[2]) == 1:
             if self.isSelectQuery(expression[2][0]):
                 # Is a sub-query
                 return expression[0] + ' NOT IN (' + expression[2][0] + ')'
-        return expression[0] + ' NOT IN (%s)' % ', '.join(['%s' for i in expression[2]])
+        return expression[0] + ' NOT IN (%s)' % ', '.join([self.escapePattern for i in expression[2]])
 
     def build_isNull(self, expression, each):
         return expression[0] + ' IS NULL'
@@ -279,20 +279,20 @@ class Where(BaseClause):
             if self.isSelectQuery(i):
                 expr.append('(' + i + ')')
             else:
-                expr.append('%s')
+                expr.append(self.escapePattern)
         return (expression[0] + ' BETWEEN ' + expr[0] + ' AND ' + expr[1])
 
     def build_like(self, expression, each):
         exprString = expression[0] + ' LIKE '
         if self.isSelectQuery(expression[2][0]):
             return exprString + '(' + expression[2][0] + ')'
-        return exprString + '%s'
+        return exprString + self.escapePattern
         
     def build_ilike(self, expression, each):
         exprString = expression[0] + ' ILIKE '
         if self.isSelectQuery(expression[2][0]):
             return exprString + '(' + expression[2][0] + ')'
-        return exprString + '%s'
+        return exprString + self.escapePattern
     
     def build_exists(self, expression, each):
         return 'EXISTS (' + expression[2][0] + ')'

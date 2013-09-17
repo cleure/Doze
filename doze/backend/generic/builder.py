@@ -386,7 +386,7 @@ class Builder(BaseClause):
         escape = []
         for k, v in values.items():
             keys.append(k)
-            vals.append('%s')
+            vals.append(self.escapePattern)
             escape.append(v)
         
         query.append('(' + ', '.join(keys) + ')')
@@ -423,7 +423,7 @@ class Builder(BaseClause):
                 vals.append(k + ' = ' + v[0])
                 continue
                 
-            vals.append(k + ' = %s')
+            vals.append(k + ' = ' + self.escapePattern)
             escape.append(v)
         
         query.append(', '.join(vals))

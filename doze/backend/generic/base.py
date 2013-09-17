@@ -131,6 +131,9 @@ class BaseClause(object):
     # Search quotes
     searchQuotes = '\'`'
     
+    # Escape pattern
+    escapePattern = '%s'
+    
     # Characters which must be escaped / quoted to be understood literally by
     # the backend, for use in field, tables, etc.
     escapeLiterals = ' `~!@#$%^&*()-=+[]{}\\|;:\'",.<>/?'
