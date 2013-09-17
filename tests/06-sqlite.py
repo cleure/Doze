@@ -14,10 +14,9 @@ CREATE_TEST_TABLE = (
 )
 
 def get_entropy(length):
-    with open('/dev/urandom', 'r') as fp:
-        bytes = fp.read(int(length/2))
-        return bytes.encode('hex')
-    return None
+    fp = open('/dev/urandom', 'r')
+    bytes = fp.read(int(length/2))
+    return bytes.encode('hex')
 
 def get_db():
     global DB
