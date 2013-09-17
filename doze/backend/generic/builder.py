@@ -13,13 +13,14 @@ class QueryResult(object):
     def __init__(self, cursor = None, destroy = True, fetch = dict):
         self.setCursor(cursor, destroy)
         self.fetch = fetch
+        self.rownumber = -1
     
     def __del__(self):
         if not self.cursor.closed:
             self.cursor.close()
     
     def __len__(self):
-        if self.cursor == None:
+        if self.cursor is None:
             return 0
         return self.cursor.rowcount
     
@@ -44,7 +45,7 @@ class QueryResult(object):
     
     def next(self):
         res = self.cursor.fetchone()
-        if res == None:
+        if res is None:
             return None
         
         if self.cursorDescrInit == False:

@@ -54,6 +54,9 @@ def main():
     
     rows = buildup()
     
+    res = bd.select('*').from_('entropy').asObject()
+    assert res.next() is not None
+    
     for i in rows:
         r, = [a for a in bd.select('*').from_('entropy').where(
             dz_sqlite.Where('data').equals(i)).asObject()]

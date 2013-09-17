@@ -30,6 +30,19 @@ class QueryResultSqlite(generic.QueryResult):
         if self.destroy == True:
             self.cursor.close()
 
+    def next(self):
+        res = self.cursor.fetchone()
+        if res is None:
+            return None
+        
+        if self.cursorDescrInit == False:
+            self.initCursorDescr()
+
+        self.rownumber += 1
+        if self.fetch.__name__ == 'dict':
+            return dict(zip(self.labels, res))
+        return res
+
 class BaseClause(generic.BaseClause):
     # See: http://www.sqlite.org/datatype3.html
     booleanTypes = ['1', '0']
