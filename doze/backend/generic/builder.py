@@ -509,8 +509,9 @@ class Builder(BaseClause):
     @ExceptionWrapper
     def execute(self, server = False):
         cursor = self.cursor(server)
+        rows = cursor.rowcount
         cursor.close()
-        return self
+        return rows
     
     @ExceptionWrapper
     def sql(self):
